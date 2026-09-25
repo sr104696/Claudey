@@ -1,6 +1,6 @@
 # Seat recurrence (Wayback Machine)
 
-Built 2026-09-24 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
+Built 2026-09-25 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
 
 | Employer | Seat family | Openings found | Per year | Median gap | Watch |
 |---|---|---:|---:|---|---|

@@ -159,6 +159,6 @@ def build_posting(
         description=text,
         status=status,
         status_evidence=evidence,
-        verified_at=config.run_id() if status in ("open", "closed") else None,
+        verified_at=config.today() if status in ("open", "closed") else None,
         sources=[source] if source else [],
     )

@@ -63,7 +63,7 @@ def _company(p: Posting) -> str:
 
 
 def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
-    run = config.run_id()
+    run = config.today()
     base_label, prev = previous_rows(run)
     prev_by_url = {r["url"]: r for r in prev}
     prev_by_key = {_match_key(r["company"], r["title"]): r for r in prev}
@@ -88,7 +88,9 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     L += ["", "## Outside NYC / US-remote", "", "Roles elsewhere in the US that would otherwise fit. Weaker out-of-area matches are in jobs.csv.", "",
           "| Position | Company | Location | Listed pay | Fit |", "|---|---|---|---|---|"]
     L += [f"| {_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} | "
-          f"{'Fit (' + str(p.fit_score) + ' signals)' if not p.poor_reason else 'Poor match: ' + _esc(p.poor_reason)} |" for p in outside]
+          f"Fit ({p.fit_score} signals) |" for p in outside]
+    hidden = sum(1 for p in posts if p.bucket == "outside" and p.poor_reason) + sum(1 for p in posts if p.bucket == "low")
+    L += ["", f"{hidden} weaker matches (out-of-area poor matches and the long tail) are in jobs.csv only."]
     L += ["", "## Checked, not open", ""]
     L += [f"- {n}" for n in closed_notes] or ["None."]
     md = config.OUT / f"open_positions_{today.isoformat()}.md"

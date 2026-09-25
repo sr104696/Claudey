@@ -48,12 +48,41 @@ CREATE TABLE IF NOT EXISTS judgments (
 """
 
 _local = threading.local()
+_checked = False
+_check_lock = threading.Lock()
+
+
+def _heal() -> None:
+    """The SQLite file is a rebuildable working store (history lives in committed CSVs), so a file damaged by a
+    killed process is moved aside and recreated instead of crashing the run."""
+    global _checked
+    with _check_lock:
+        if _checked or not config.DB_PATH.exists():
+            _checked = True
+            return
+        _checked = True
+        try:
+            probe = sqlite3.connect(config.DB_PATH, timeout=60)
+            ok = probe.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+            probe.close()
+        except sqlite3.DatabaseError:
+            ok = False
+        if not ok:
+            import time
+
+            stamp = time.strftime("%Y%m%d-%H%M%S")
+            for suffix in ("", "-wal", "-shm"):
+                f = config.DB_PATH.with_name(config.DB_PATH.name + suffix)
+                if f.exists():
+                    f.rename(f.with_name(f.name + f".corrupt-{stamp}"))
+            print(f"[radar] data/jobs.sqlite was damaged; moved aside as *.corrupt-{stamp} and rebuilt")
 
 
 def conn() -> sqlite3.Connection:
     c = getattr(_local, "conn", None)
     if c is None:
         config.DATA.mkdir(parents=True, exist_ok=True)
+        _heal()
         c = sqlite3.connect(config.DB_PATH, timeout=60)
         c.row_factory = sqlite3.Row
         c.execute("PRAGMA journal_mode=WAL")
@@ -79,7 +108,7 @@ def tx():
 
 
 def upsert_posting(p: Posting) -> None:
-    now = config.run_id()
+    now = config.today()
     with tx() as c:
         row = c.execute("SELECT first_seen FROM postings WHERE key=?", (p.key,)).fetchone()
         first = row["first_seen"] if row else now
@@ -121,7 +150,7 @@ def snapshot(run_id: str) -> list[sqlite3.Row]:
 
 
 def upsert_board_jobs(rows: list[dict]) -> None:
-    now = config.run_id()
+    now = config.today()
     with tx() as c:
         for r in rows:
             prev = c.execute(
@@ -148,5 +177,5 @@ def put_judgment(key: str, desc_hash: str, data: dict) -> None:
     with tx() as c:
         c.execute(
             "INSERT OR REPLACE INTO judgments VALUES (?,?,?,?)",
-            (key, desc_hash, json.dumps(data), config.run_id()),
+            (key, desc_hash, json.dumps(data), config.today()),
         )

@@ -16,7 +16,7 @@ def add_leads(leads: list[Lead], path: Path = config.LEADS_PATH) -> int:
     """Append leads, skipping (source, url) pairs already recorded in this run. Returns count written."""
     if not leads:
         return 0
-    run = config.run_id()
+    run = config.today()
     with locked(_LOCK):
         seen = {(l["source"], l["url"]) for l in read_leads(path) if l.get("run") == run}
         n = 0
@@ -37,7 +37,7 @@ def read_leads(path: Path = config.LEADS_PATH, run: str | None = None) -> list[d
     if not path.exists():
         return []
     out = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").split("\n"):
         if line.strip():
             try:
                 d = json.loads(line)

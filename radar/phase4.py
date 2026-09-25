@@ -92,6 +92,8 @@ def resolve_lead(lead: dict, reg: dict) -> tuple[str, Posting | None, str]:
             return "open", hit, hit.status_evidence + f" (lead from {urlsplit(url).netloc}; employer posting found)"
         if st == "ok":
             return "unverified", None, f"employer board {board[0]}:{board[1]} has no matching title"
+    if src.startswith("alumni:"):  # login-gated, robots-disallowed boards: never fetched, only matched by company+title
+        return "unverified", None, "alumni-board lead not found on the employer's own board"
     if is_aggregator(url) and "linkedin" not in url and "indeed" not in url and "glassdoor" not in url:
         o = verify_url(url, company, src)
         if o.posting:
@@ -102,7 +104,7 @@ def resolve_lead(lead: dict, reg: dict) -> tuple[str, Posting | None, str]:
 
 # ------------------------------------------------------------------------ gather
 def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
-    run = config.run_id()
+    run = config.today()
     stats: dict = {"seed": 0, "boards": 0, "leads": 0, "leads_verified": 0, "leads_unverified": 0, "by_source": {}}
     posts: list[Posting] = []
     ph1 = config.run_dir() / "phase1.json"
@@ -118,8 +120,9 @@ def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
         stats["seed"] = len(seed_keys)
     cb = config.run_dir() / "candidates_boards.jsonl"
     if cb.exists():
-        for line in cb.read_text(encoding="utf-8").splitlines():
-            posts.append(Posting.model_validate_json(line))
+        for line in cb.read_text(encoding="utf-8").split("\n"):
+            if line.strip():
+                posts.append(Posting.model_validate_json(line))
             stats["boards"] += 1
 
     if verify_leads:
@@ -135,6 +138,7 @@ def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
                 except Exception as e:
                     return lead, "unverified", None, f"{type(e).__name__}: {e}"
 
+        unresolved_alumni: list[dict] = []
         with ThreadPoolExecutor(8) as ex:
             for lead, st, p, ev in ex.map(one, leads):
                 s = stats["by_source"].setdefault(lead["source"].split(":")[0], {"leads": 0, "verified_open": 0, "unverified": 0, "closed": 0})
@@ -149,20 +153,34 @@ def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
                 else:
                     s["unverified"] += 1
                     stats["leads_unverified"] += 1
+                    if lead["source"].startswith("alumni:"):
+                        unresolved_alumni.append(lead)
+        if any(l["source"].startswith("alumni:") for l in leads):
+            from .inbox import write_unresolved
+
+            stats["alumni_unresolved_report"] = write_unresolved(unresolved_alumni)
     return posts, stats
 
 
 def dedupe(posts: list[Posting]) -> list[Posting]:
     rank = lambda p: (0 if "seed" in p.sources else 1, 0 if p.loc_bucket == "nyc" else 1, 0 if p.ats not in ("page", "jsonld", None) else 1,
                       1 if p.via_aggregator else 0, -len(p.description))
-    by_key: dict[str, Posting] = {}
+    """Merge copies of one req (same title, same text: Brex-style per-location reposts, seed page vs ATS API);
+    keep distinct reqs that merely share a generic title ("Counsel" on two teams)."""
+
+    def body(p: Posting) -> str:
+        return re.sub(r"\W+", " ", p.description.lower())[:1500]
+
+    by_key: dict[str, list[Posting]] = {}
     for p in sorted(posts, key=rank):
-        k = p.dedupe_key()
-        if k in by_key:
-            by_key[k].sources = sorted(set(by_key[k].sources) | set(p.sources))
+        group = by_key.setdefault(p.dedupe_key(), [])
+        twin = next((q for q in group if not q.description or not p.description or body(q) == body(p)
+                     or q.ats != p.ats), None)
+        if twin:
+            twin.sources = sorted(set(twin.sources) | set(p.sources))
         else:
-            by_key[k] = p
-    return list(by_key.values())
+            group.append(p)
+    return [p for g in by_key.values() for p in g]
 
 
 def display_company(p: Posting) -> str:
@@ -232,7 +250,9 @@ def export_judgments(posts: list[Posting], batch_size: int = 20) -> list[str]:
     for f in PENDING.glob("*.json"):
         f.unlink()
     cached = judgments()
-    need = [p for p in posts if (p.bucket == "fit" or (p.bucket == "outside" and not p.poor_reason))
+    # fits, would-be fits elsewhere, and near-misses shut out only by a pattern match (reviewable, reversible)
+    near_miss = lambda p: p.bucket == "poor" and p.hard_exclude_reason and p.fit_score >= 4 and not judgments().get(p.key)
+    need = [p for p in posts if (p.bucket == "fit" or (p.bucket == "outside" and not p.poor_reason) or near_miss(p))
             and not (p.key in cached and cached[p.key].get("desc_hash") == desc_hash(p))
             and _role_key(p.company, p.title) not in cached]
     files = []
@@ -256,7 +276,7 @@ def apply_judgments() -> int:
     with open(JUDGMENTS, "a", encoding="utf-8") as out:
         for f in sorted(RESULTS.glob("*.json")):
             for d in json.loads(f.read_text(encoding="utf-8")):
-                d["judged_on"] = config.run_id()
+                d["judged_on"] = config.today()
                 d.setdefault("desc_hash", hashes.get(d["key"]))
                 out.write(json.dumps(d, ensure_ascii=False) + "\n")
                 n += 1

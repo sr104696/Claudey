@@ -8,7 +8,6 @@ Re-run it weekly; git history of `out/` is the posting history.
 
 ```bash
 pip install -r requirements.txt
-python -m playwright install chromium
 cp .env.example .env        # optional API keys; every channel works without them or is skipped and logged
 python -m radar refresh        # phases 1-5; or run /refresh-jobs in Claude Code
 ```
@@ -24,6 +23,7 @@ re-scores, summarizes the diff and commits the outputs.
 | `python -m radar boards [--company X]` | Phase 2: ATS detection and full board pulls, updates `seeds/companies.csv` |
 | `python -m radar discover <channel>` | One Phase 3 channel: `commoncrawl`, `public_sector`, `official_apis`, `hn`, `wayback`, `websearch` |
 | `python -m radar import-leads <file>` | Add web-search leads (JSONL) gathered by Claude |
+| `python -m radar import-inbox` | Turn saved Penn alumni-board alert emails in `data/inbox/` into leads |
 | `python -m radar score` | Phases 4-5 again on today's data (after judgments) |
 | `python -m radar apply-judgments` | Merge subagent judgments from `data/judgments/results/` |
 
@@ -34,7 +34,8 @@ re-scores, summarizes the diff and commits the outputs.
 | `out/open_positions_<date>.md` | the list, in the format of `seeds/current_list.md` (fit, poor match, outside NYC, not open); † marks rows new since the last run |
 | `out/jobs.csv` | every kept posting with every field, including the long tail not shown in the markdown (`bucket=low`) |
 | `out/diff_<date>.md` | new, closed, and pay or requirement changes since the last run |
-| `out/run_log.md` | per-channel counts, blocked sites, failures, every request |
+| `out/run_log.md` | starts with the **Silence check** (sources that crashed, went quiet or were skipped), then per-channel counts, blocks, failures, every request |
+| `out/alumni_leads.md` | alumni-board jobs from your alert emails that couldn't be matched on an employer site |
 | `out/recurrence.md` | how often the watched seats reopen (Wayback Machine) |
 | `out/seed_verification_<date>.md` | the Phase 1 re-check of the seed list |
 
@@ -43,7 +44,7 @@ re-scores, summarizes the diff and commits the outputs.
 ## Running on GitHub and the Lovable app
 
 `.github/workflows/refresh.yml` runs `python -m radar refresh` on GitHub's servers and commits the results. Start it
-from the repo's Actions tab ("refresh" → Run workflow) or from a front end through the GitHub API. It has no schedule
+from the repo's Actions tab ("refresh" → Run workflow). A full sweep takes about 60–120 minutes; with **Skip the Common Crawl sweep** ticked, about 20–40. From the mobile app, start a fresh run rather than "Re-run" once `main` has moved (a re-run reuses the old commit); the workflow merges `main` first either way. Runs queue one at a time, so a second tap waits for the first. Each run posts a summary on its run page and uploads `radar-diagnostics-<run id>` (run log and per-channel output) even when it fails or from a front end through the GitHub API. It has no schedule
 unless you add one. Those runs can't make the Claude judgment calls, so run `/refresh-jobs` afterwards to judge new rows.
 [docs/LOVABLE.md](docs/LOVABLE.md) has the prompt and build steps for a Lovable dashboard over these outputs.
 
@@ -66,6 +67,17 @@ unless you add one. Those runs can't make the Claude judgment calls, so run `/re
 | `seeds/watchlist.csv` | closed roles to re-check and aggregator rows to resolve to employer pages |
 | `out/` | dated outputs, `jobs.csv`, diffs and the run log |
 | `data/` | `leads.jsonl`, `judgments.jsonl`, `snapshots/<date>.csv` (drives diffs and †), Common Crawl sweep state (`cc_boards.json`, `discovered_boards.csv`); the SQLite file is local only |
+
+## Alumni boards (Penn Carey Law 12twenty, Penn Handshake)
+
+Both are login-gated and disallow crawling, so the radar never connects to them. Set up saved-search email
+alerts on each, save the alert emails into `data/inbox/` (git-ignored), and run `python -m radar import-inbox`
+(or `/refresh-jobs`, which does it for you). Each job is looked up on the employer's own board by company and
+title; ones that can't be found are listed in `out/alumni_leads.md`.
+
+## Adding a feed
+
+Any public JSON, RSS or Atom job feed: add one row to `seeds/feeds.csv` (`url, format, label, title_allowlist`).
 
 ## Scoring notes
 

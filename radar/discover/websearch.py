@@ -17,7 +17,7 @@ QUERIES = config.SEEDS / "search_queries.csv"
 
 
 def run() -> dict:
-    leads = [l for l in read_leads(run=config.run_id()) if l["source"].startswith("websearch")]
+    leads = [l for l in read_leads(run=config.today()) if l["source"].startswith("websearch")]
     n_queries = 0
     if QUERIES.exists():
         with open(QUERIES, newline="", encoding="utf-8") as f:

@@ -39,7 +39,9 @@ def rmk_sitemap(host: str) -> tuple[str, list[str]]:
         return r.describe(), []
     import html as htmllib
 
-    return "ok", [htmllib.unescape(u) for u in re.findall(r"<loc>([^<]+/job/[^<]+)</loc>", r.text)]
+    urls = [htmllib.unescape(u) for u in re.findall(r"<loc>([^<]+/job/[^<]+)</loc>", r.text)]
+    # an index, gzip or format change yields no job URLs; say so instead of reporting an empty "ok" board
+    return ("ok" if urls else "sitemap had no /job/ URLs (format change?)"), urls
 
 
 def rmk_title_from_url(url: str) -> str:

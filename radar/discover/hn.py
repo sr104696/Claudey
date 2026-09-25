@@ -53,8 +53,10 @@ def run() -> dict:
             urls = [htmllib.unescape(u) for u in re.findall(r'href="([^"]+)"', raw)]
             ats = next((u for u in urls if ATS_URL.match(u)), None)
             url = ats or (urls[0] if urls else f"https://news.ycombinator.com/item?id={c['id']}")
-            for role in roles[:4]:
-                leads.append(Lead(source="hn_whoishiring", url=url, company=company, title=role, location=loc_part,
+            for i, role in enumerate(roles[:4]):
+                # leads dedupe on (source, url); a fragment keeps each role of one comment (servers never see it)
+                leads.append(Lead(source="hn_whoishiring", url=url if i == 0 else f"{url}#role-{i + 1}", company=company,
+                                  title=role, location=loc_part,
                                   note=f"{month}: {re.sub(r'\s+', ' ', text)[:200]}"))
     written = add_leads(leads)
     record_channel("discover:hn", queried=queried, candidates=len(leads), failures=failures,

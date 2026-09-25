@@ -15,6 +15,7 @@ AGGREGATOR_HOSTS = (
     "jobleads.com", "politicalriskjobs.com", "builtin.com", "builtinnyc.com", "legal.io", "goinhouse.com",
     "ziprecruiter.com", "talents.vaia.com", "jobright.ai", "theladders.com", "startup.jobs", "justia.jobs",
     "themuse.com", "simplyhired", "glassdoor.com", "indeed.com", "linkedin.com", "sonara.ai",
+    "hirelegalops.com", "12twenty.com", "joinhandshake.com", "web3.career",
 )
 
 
@@ -40,10 +41,13 @@ _js_cache: list[Posting] | None = None
 
 
 def janestreet_jobs() -> list[Posting]:
+    """Raises if the feed is down, so an outage reads as 'unverified', never as 'every Jane Street row closed'."""
     global _js_cache
     if _js_cache is None:
         st, ps = htmlats.janestreet_feed()
-        _js_cache = ps if st == "ok" else []
+        if st != "ok" or not ps:
+            raise RuntimeError(f"Jane Street jobs feed unavailable ({st})")
+        _js_cache = ps
     return _js_cache
 
 
@@ -152,8 +156,10 @@ def search_board(method: str, target: str, company: str, title_rx: str, loc_rx: 
         st, ps = lever.pull(target, company, source)
         found = [p for p in ps if trx.search(p.title)]
     elif method == "janestreet":
-        ps = janestreet_jobs()
-        st = "ok" if ps else "feed unavailable"
+        try:
+            ps, st = janestreet_jobs(), "ok"
+        except RuntimeError as e:
+            ps, st = [], str(e)
         found = [p for p in ps if trx.search(p.title)]
     elif method == "workday":
         spec = workday.spec_from_slug(target)

@@ -35,7 +35,8 @@ def today() -> str:
 
 
 def run_id() -> str:
-    """One run per day. Override with RADAR_RUN_ID to replay or to share an id with subagents."""
+    """One run per day locally. RADAR_RUN_ID overrides (CI sets it to the Actions run id, so two runs on one
+    day never share data/runs/<id>/)."""
     return os.getenv("RADAR_RUN_ID") or today()
 
 

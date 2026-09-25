@@ -235,7 +235,8 @@ def pull(ats: str, slug: str, company: str, segment: str) -> tuple[str, list[Pos
                     out.append(_relevant(o.posting, segment))
         return ("ok" if urls else "sitemap unavailable"), out
     if ats == "smartrecruiters":
-        return smallats.sr_pull(slug, company, src)[0], []
+        st, ps = smallats.sr_pull(slug, company, src)
+        return st, [_relevant(p, segment) for p in ps]
     return f"no puller for {ats}", []
 
 
@@ -265,14 +266,15 @@ def run(companies: list[str] | None = None, redetect: bool = False) -> dict:
                 r["ats"], r["slug"], r["detect_note"] = detect(r)
             if r["ats"] in ("none", "blocked", "channel"):
                 r["board_status"] = r["ats"]
-                r["last_checked"] = config.run_id()
+                r["last_checked"] = config.today()
                 return []
             try:
                 st, ps = pull(r["ats"], r["slug"], r["company"], r.get("segment", ""))
             except Exception as e:  # keep going; the log records it
                 st, ps = f"error: {type(e).__name__}: {e}", []
-            keep = [p for p in ps if p.relevant and p.loc_bucket in KEEP]
-            r.update(board_status=st, jobs_total=len(ps), jobs_relevant_us=len(keep), last_checked=config.run_id())
+            # unknown locations go through too: Phase 4 re-reads the posting and the outside/non-US filter applies there
+            keep = [p for p in ps if p.relevant and p.loc_bucket in KEEP + ("unknown",)]
+            r.update(board_status=st, jobs_total=len(ps), jobs_relevant_us=len(keep), last_checked=config.today())
             db.upsert_board_jobs([{
                 "ats": p.ats, "board": p.board, "job_id": p.job_id or p.url, "company": p.company, "title": p.title,
                 "location": p.location, "loc_bucket": p.loc_bucket, "url": p.url, "relevant": p.relevant,

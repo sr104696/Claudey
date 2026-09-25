@@ -11,7 +11,9 @@ from ..textutil import html_to_text
 from .common import keep_location
 
 MUSE = "https://www.themuse.com/api/public/jobs"
-MUSE_CATEGORIES = ["Legal", "Compliance", "Finance", "Accounting and Finance", "Data and Analytics", "Government and Public Policy"]
+# The Muse renamed its categories in 2026: "Legal"/"Compliance"/"Finance" now return total=0 with HTTP 200.
+# A category that comes back empty on page 0 is logged as a failure so the next rename can't hide.
+MUSE_CATEGORIES = ["Legal Services", "Accounting and Finance", "Data and Analytics"]
 MUSE_LOCATIONS = ["New York, NY", "Flexible / Remote"]
 MUSE_MAX_PAGES = 10
 USAJOBS_ORGS = "SE00,CT00,TR93,FQ00,FD00,TR00"  # SEC, CFTC, OCC, CFPB, FDIC, Treasury
@@ -40,6 +42,8 @@ def _muse(stats: dict) -> list[Lead]:
                         leads.append(Lead(source="official_apis:themuse", url=(j.get("refs") or {}).get("landing_page", ""),
                                           company=(j.get("company") or {}).get("name"), title=j.get("name"),
                                           location="; ".join(locs), note=f"The Muse ({cat}); {why}"))
+                if page == 0 and not d.get("total"):
+                    stats["failures"].append(f"muse category '{cat}' at '{loc}' returned 0 jobs (renamed category?)")
                 if page + 1 >= d.get("page_count", 0):
                     break
     return leads

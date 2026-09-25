@@ -263,7 +263,10 @@ class PoliteClient:
         host = parts.netloc.lower()
         with self._robots_lock:
             if host in self._robots:
-                return self._robots[host]
+                cached = self._robots[host]
+                # an unreachable robots.txt means "don't crawl now", not "never this run": retry after 10 minutes
+                if cached.state != "error" or time.time() - getattr(cached, "_at", 0) < 600:
+                    return cached
         robots_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
         res = None
         for _ in range(5):  # RFC 9309: follow at least five redirects
@@ -286,8 +289,11 @@ class PoliteClient:
             rules = robots.Rules(state="missing", note=f"robots.txt HTTP {res.status} (allow all per RFC 9309)")
         elif res.status >= 500:
             rules = robots.Rules(state="error", note=f"robots.txt HTTP {res.status}")
+        elif res.status in (301, 302, 303, 307, 308):
+            rules = robots.Rules(state="error", note="robots.txt redirect loop")  # don't read a redirect body as allow-all
         else:
             rules = robots.parse(res.text, config.UA_TOKEN)
+        rules._at = time.time()
         with self._robots_lock:
             self._robots[host] = rules
         return rules
