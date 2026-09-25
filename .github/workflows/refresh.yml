@@ -1,12 +1,11 @@
 # Runs the job radar on GitHub's servers and commits the results.
-# Started by hand from the Actions tab, or by the Lovable app's "Run sweep now" button
-# (workflow_dispatch via the GitHub API). No schedule: add one under `on:` if you want weekly runs, e.g.
-#   schedule:
-#     - cron: "0 11 * * 1"   # Mondays 11:00 UTC
-#
-# Judgment calls (sales-attached, domain-years floor) need Claude, which this workflow can't reach.
-# New fit rows are scored by the rules alone and exported to data/judgments/pending; running
-# /refresh-jobs in Claude Code afterwards judges them and re-scores.
+# Start it from the Actions tab or the mobile app (Run workflow), or via the GitHub API.
+# Duration: full sweep about 60-120 minutes; with "Skip the Common Crawl sweep" about 20-40.
+# Runs queue one at a time (concurrency group), so a second tap waits for the first.
+# Prefer a fresh run over "Re-run" once main has moved: a re-run reuses the old commit (the merge step below
+# makes it safe anyway). No schedule: add one under `on:` only if the owner asks.
+# Judgment calls need Claude; new fit rows are left pending for /refresh-jobs in Claude Code.
+# Action versions pinned to major tags: checkout@v4, setup-python@v5, upload-artifact@v4.
 
 name: refresh
 
@@ -31,6 +30,7 @@ jobs:
     timeout-minutes: 240
     env:
       PYTHONIOENCODING: utf-8
+      RADAR_RUN_ID: ${{ github.run_id }}   # unique per run: same-day runs never share data/runs/<id>/
       RADAR_CONTACT_EMAIL: sethnrosenberg@gmail.com
       # user-approved: Common Crawl's index server disallows robots, but publishes the CDX API for programs
       RADAR_ROBOTS_EXEMPT_HOSTS: index.commoncrawl.org
@@ -42,31 +42,90 @@ jobs:
       SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # README promises git history of out/ is the posting history (~1 min extra)
+
+      - name: Work on current main
+        run: |
+          git config user.name "job-radar-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main --no-edit
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
-      - name: Install
+      - name: Install Python deps
         run: pip install -r requirements.txt
 
+      - name: Show inputs
+        run: |
+          echo "skip_commoncrawl=${{ inputs.skip_commoncrawl }}"
+          echo "run_id=${{ github.run_id }} ref=${{ github.ref }} sha=$(git rev-parse HEAD)"
+          for k in USAJOBS_API_KEY ADZUNA_APP_ID SERPAPI_KEY NTFY_TOPIC; do
+            if [ -n "${!k}" ]; then echo "$k: set"; else echo "$k: not set (channel skips)"; fi
+          done
+
+      # skip_commoncrawl=true  -> python -m radar refresh --channels <all but commoncrawl>
+      # skip_commoncrawl=false -> python -m radar refresh
       - name: Run the radar
+        timeout-minutes: 225  # step timeout fires before the job timeout, so the steps below still run
         run: |
           if [ "${{ inputs.skip_commoncrawl }}" = "true" ]; then
-            python -m radar refresh --channels public_sector official_apis hn websearch wayback
+            python -m radar refresh --channels public_sector official_apis hn feeds websearch wayback
           else
             python -m radar refresh
           fi
 
-      - name: Commit results
+      - name: Run summary
+        if: always()
         run: |
-          git config user.name "job-radar-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add out/ data/snapshots/ data/leads.jsonl data/judgments.jsonl data/cc_boards.json data/discovered_boards.csv seeds/companies.csv
+          {
+            echo "## Job radar run ${{ github.run_id }} (skip_commoncrawl=${{ inputs.skip_commoncrawl }})"
+            f=$(ls -t out/diff_*.md 2>/dev/null | head -1)
+            [ -n "$f" ] && head -12 "$f"
+            echo
+            [ -f out/run_log.md ] && sed -n '/^## FAILURE/,/^## /p;/^## Silence check/,/^## Channels/p' out/run_log.md | head -40
+            echo
+            echo "New fit rows still need judgment: run /refresh-jobs in Claude Code."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Commits even when a discovery channel failed: the outputs were written and the run still exits red.
+      - name: Commit results
+        if: always() && hashFiles('out/run_log.md') != ''
+        run: |
+          git add out/ data/snapshots/ seeds/companies.csv
+          for f in data/leads.jsonl data/judgments.jsonl data/cc_boards.json data/discovered_boards.csv data/source_health.csv; do
+            [ -f "$f" ] && git add "$f"
+          done
           if git diff --cached --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "Job radar refresh $(date -u +%Y-%m-%d)"
-            git push
+            exit 0
           fi
+          git commit -m "Job radar refresh $(date -u +%Y-%m-%d) run ${{ github.run_id }} skip_cc=${{ inputs.skip_commoncrawl }}"
+          # -X theirs is safe only because every path this job commits is regenerable radar output
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin main && git push && exit 0
+            echo "push attempt $i failed; retrying"; sleep 10
+          done
+          echo "push failed after 3 attempts"; exit 1
+
+      - name: Upload run diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-diagnostics-${{ github.run_id }}
+          path: |
+            out/run_log.md
+            out/diff_*.md
+            data/runs/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Notify on failure
+        if: failure() && env.NTFY_TOPIC != ''
+        run: |
+          curl -s -d "refresh run ${{ github.run_id }} FAILED. See the run summary and diagnostics artifact." \
+            -H "Title: Job radar FAILED" "https://ntfy.sh/${NTFY_TOPIC}"

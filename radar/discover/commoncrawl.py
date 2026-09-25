@@ -70,7 +70,7 @@ def _tokens(api: str, pattern: str, failures: list[str]) -> tuple[set[str], int]
 
 
 def run() -> dict:
-    today = config.run_id()
+    today = config.today()
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     failures: list[str] = []
     queried = 0
@@ -98,7 +98,8 @@ def run() -> dict:
         with channel(ch):
             st = state[ats]
             due = [t for t, v in st.items() if not v["last_checked"] or v["last_checked"] < cutoff]
-            due.sort(key=lambda t: (t not in fresh[ats], t))
+            # never-checked tokens from the latest crawl first, then the stalest; alphabetical order starved late tokens
+            due.sort(key=lambda t: (t not in fresh[ats], st[t]["last_checked"] or "", t))
             todo, leads = due[:MAX_TOKENS], []
             for tok in todo:
                 status, ps = PULL[ats](tok, tok, f"commoncrawl:{ats}")
@@ -107,6 +108,9 @@ def run() -> dict:
                     name = greenhouse.board_name(tok) or tok
                     for l in ls:
                         l.company = name
+                if status != "ok":  # a transient failure must not hide the board for RECHECK_DAYS
+                    st[tok]["last_error"] = status
+                    continue
                 st[tok].update(last_checked=today, jobs=len(ps), relevant=len(ls), company=ls[0].company if ls else tok)
                 leads += ls
             return leads, len(todo), len(due) - len(todo)

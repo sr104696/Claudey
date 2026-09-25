@@ -39,7 +39,7 @@ def load_channels() -> dict[str, dict]:
     path = config.run_dir() / "channels.jsonl"
     out: dict[str, dict] = {}
     if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
+        for line in path.read_text(encoding="utf-8").split("\n"):
             if line.strip():
                 r = json.loads(line)
                 out[r["channel"]] = r  # last write per channel wins
@@ -49,7 +49,7 @@ def load_channels() -> dict[str, dict]:
 def load_http() -> list[dict]:
     recs = []
     for p in sorted(config.run_dir().glob("http-*.jsonl")):
-        for line in p.read_text(encoding="utf-8").splitlines():
+        for line in p.read_text(encoding="utf-8").split("\n"):
             if line.strip():
                 try:
                     recs.append(json.loads(line))
@@ -66,6 +66,10 @@ def write_run_log(extra_sections: list[tuple[str, str]] | None = None) -> str:
     chans = load_channels()
     http = load_http()
     lines = [f"# Run log {config.run_id()}", "", f"User-Agent: `{config.USER_AGENT}`", ""]
+    extra_sections = list(extra_sections or [])
+    for title, body in [s for s in extra_sections if s[0] == "Silence check"]:  # alarms first, before the detail
+        lines += [f"## {title}", "", body, ""]
+    extra_sections = [s for s in extra_sections if s[0] != "Silence check"]
 
     lines += ["## Channels", "", "| Channel | Queried | Candidates | Verified open | Kept | Notes |", "|---|---:|---:|---:|---:|---|"]
     for name in sorted(chans):

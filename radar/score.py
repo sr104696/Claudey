@@ -34,7 +34,7 @@ EXCL = {
     "demo": re.compile(r"(run|deliver|lead|conduct)[^.\n]{0,30}demos?|pre-?sales|prospects?\b|sales (cycle|team|process|pipeline)|close deals|quota", re.I),
     "quant_title": re.compile(r"\bquant|quantitative research|data scien|statistician|machine learning", re.I),
     "python": re.compile(r"python[^.\n]{0,60}(required|must|proficien)|(proficien|fluen|expert|strong)[^.\n]{0,40}(python|statistic|econometric)", re.I),
-    "er_banking": re.compile(r"\b([5-9]|1\d)\s*\+?\s*(\+|or more)?\s*years?[^.\n]{0,90}(equity research|investment banking|\bbanking\b|buy[- ]side|hedge fund|private equity|investment (research|experience|analyst)|fundamental (equity|investing))", re.I),
+    "er_banking": re.compile(r"\b([5-9]|1\d)(?:\s*(?:-|–|—|to)\s*\d{1,2})?\s*\+?\s*(\+|or more)?\s*years?[^.\n]{0,90}(equity research|investment banking|\bbanking\b|buy[- ]side|hedge fund|private equity|investment (research|experience|analyst)|fundamental (equity|investing))", re.I),
     "comp_ops_title": re.compile(r"paralegal|document review|compliance (analyst|specialist|associate|officer|operations)|\bkyc\b|\baml\b|surveillance|legal (assistant|secretary)|docketing", re.I),
     "contract": re.compile(r"\bcontract(or)?\b[^.\n]{0,40}(role|position|basis|engagement)|part[- ]time|\bfreelance\b|\b\d+[- ]week\b", re.I),
 }
@@ -71,7 +71,7 @@ def judgments() -> dict[str, dict]:
         if JUDGMENTS.exists():
             from .db import get_posting
 
-            for line in JUDGMENTS.read_text(encoding="utf-8").splitlines():
+            for line in JUDGMENTS.read_text(encoding="utf-8").split("\n"):
                 if line.strip():
                     d = json.loads(line)
                     _judg[d["key"]] = d
@@ -133,6 +133,10 @@ def score(p: Posting) -> Posting:
         excl.append(f"Asks for 10+ years: “{y.context}”")
     if EXCL["comp_ops_title"].search(title) and not re.search(r"counsel|attorney", title, re.I):
         excl.append("Paralegal, document review or compliance-operations role")
+    if j and j.get("override_regex_exclude"):
+        # a judge read the posting and found the pattern misfired ("not a commission role", "statistics a plus");
+        # structured OTE pay from the ATS is data, not a pattern, so it stands
+        excl = [e for e in excl if e.startswith("Pay is quoted as OTE") and p.pay_type == "OTE"]
     if j and j.get("hard_exclude"):
         excl.append(j["hard_exclude"])
 

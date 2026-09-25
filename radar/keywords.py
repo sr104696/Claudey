@@ -115,7 +115,7 @@ FLAGS: list[tuple[str, str]] = [
     ("Python required", r"python[^.\n]{0,60}(required|must|proficien)|(proficien|fluen|expert)[^.\n]{0,40}python"),
     ("earnings models", r"earnings models?|financial model(l)?ing|build (and maintain )?(detailed )?(financial )?models"),
     ("waterfall model", r"waterfall model"),
-    ("6+ years leveraged finance", r"\b([6-9]|1\d)\+?\s*(\+|or more)?\s*years?[^.\n]{0,60}(leveraged finance|lev ?fin|finance practice|transactional)"),
+    ("6+ years leveraged finance", r"\b([6-9]|1\d)(?:\s*(?:-|–|—|to)\s*\d{1,2})?\+?\s*(\+|or more)?\s*years?[^.\n]{0,60}(leveraged finance|lev ?fin|finance practice|transactional)"),
     ("paralegal", r"\bparalegal"),
     ("document review", r"document review"),
     ("10+ years", r"\b(1\d|[2-9]\d)\s*\+?\s*(\+|or more)?\s*years"),

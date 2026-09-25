@@ -20,7 +20,7 @@ def posting_leads(postings: list[Posting], source: str, company: str | None = No
     out = []
     for p in postings:
         ok, why = relevance(p.title, p.description)
-        if ok and p.loc_bucket in KEEP:
+        if ok and p.loc_bucket in KEEP + ("unknown",):
             out.append(Lead(source=source, url=p.url, company=company or p.company, title=p.title,
                             location=p.location, note=why, ats=p.ats, board=p.board))
     return out

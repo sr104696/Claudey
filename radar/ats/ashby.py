@@ -108,7 +108,7 @@ def verify(board: str, job_id: str, company: str, source: str = "verify") -> Pos
     if not r.ok:
         raise RuntimeError(f"ashby {board}: {r.describe()}")
     for j in r.json().get("jobs", []):
-        if j.get("id", "").lower() == job_id.lower():
+        if j.get("id", "").lower() == job_id.lower() and j.get("isListed", True):
             p = _posting(board, j, company, source)
             p.status_evidence = f"Ashby API lists job {job_id} on board '{board}' on this run"
             return p

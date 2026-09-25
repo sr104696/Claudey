@@ -4,6 +4,7 @@
   boards [--company NAME]   Phase 2: detect ATS for every registry company, pull full boards
   discover CHANNEL          Phase 3: run one discovery channel (module radar/discover/CHANNEL.py)
   import-leads FILE         Append leads from a JSONL file (web-search results gathered by Claude)
+  import-inbox              Turn saved alumni-board alert emails (data/inbox/) into leads
   refresh                   Phases 1-5 end to end
 """
 from __future__ import annotations
@@ -30,6 +31,7 @@ def main(argv: list[str] | None = None) -> int:
     rf.add_argument("--skip-discovery", action="store_true", help="reuse leads already gathered today")
     rf.add_argument("--channels", nargs="*", help="discovery channels to run (default: all)")
     sub.add_parser("score", help="phases 4-5 only, reusing today's seed check, board pulls and leads")
+    sub.add_parser("import-inbox", help="turn saved alumni-board alert emails in data/inbox/ into leads")
     sub.add_parser("apply-judgments", help="merge data/judgments/results/*.json into data/judgments.jsonl")
     args = ap.parse_args(argv)
 
@@ -45,6 +47,11 @@ def main(argv: list[str] | None = None) -> int:
                 results, closed = phase1.verify_seeds()
             summary = pipeline.finish(results, closed)
         print(json.dumps(summary, indent=2, ensure_ascii=False))
+        return 0
+    if args.cmd == "import-inbox":
+        from .inbox import import_inbox
+
+        print(json.dumps(import_inbox(), indent=2))
         return 0
     if args.cmd == "apply-judgments":
         from .phase4 import apply_judgments

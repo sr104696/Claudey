@@ -196,7 +196,7 @@ _JD_PREF = re.compile(
 
 def jd_requirement(text: str, title: str = "") -> str:
     t = text or ""
-    if _JD_REQ.search(t) or re.search(r"\b(attorney|counsel|lawyer)\b", title, re.I) and re.search(r"\bJ\.?D\.?\b|bar", t):
+    if _JD_REQ.search(t) or re.search(r"\b(attorney|counsel|lawyer)\b", title, re.I) and re.search(r"\bJ\.?D\.?\b|\bbar\b", t):
         return "Y"
     if _JD_PREF.search(t) or re.search(r"\bJ\.D\.|\bJD\b|juris doctor|law degree", t):
         return "pref"

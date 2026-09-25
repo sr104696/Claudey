@@ -35,7 +35,7 @@ TARGETS = [  # employer, CDX url pattern, title source ("url" = title in the URL
     ("Harvey", "www.harvey.ai/company/careers/*", "page"),
 ]
 MAX_PAGE_FETCHES = 250
-NOISE = r"intern|summer|externship|meet and greet|quant|developer|engineer(?!.*legal)|reporter|campus|university|\bhk\b|\bjp\b|hong kong|singapore|london|tokyo|sydney|asia|europe|\buk\b|\bsg\b"
+NOISE = r"intern|summer|externship|meet and greet|quant|developer|(?<!legal )engineer(?! legal)|reporter|campus|university|\bhk\b|\bjp\b|hong kong|singapore|london|tokyo|sydney|asia|europe|\buk\b|\bsg\b"
 REQUIRE = {"Debtwire (ION)": r"debtwire"}
 
 
@@ -92,7 +92,7 @@ def run() -> dict:
             rec["first"], rec["last"] = min(rec["first"], ts[:8]), max(rec["last"], ts[:8])
 
     lines = ["# Seat recurrence (Wayback Machine)", "",
-             f"Built {config.run_id()} from Wayback CDX captures since {since[:4]}-{since[4:6]}. Capture dates are upper bounds on "
+             f"Built {config.today()} from Wayback CDX captures since {since[:4]}-{since[4:6]}. Capture dates are upper bounds on "
              "when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.", "",
              "| Employer | Seat family | Openings found | Per year | Median gap | Watch |", "|---|---|---:|---:|---|---|"]
     detail = []

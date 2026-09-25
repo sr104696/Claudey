@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import smtplib
 import subprocess
 import sys
@@ -11,21 +12,38 @@ from email.message import EmailMessage
 from . import config, output, phase1, phase2, phase4, runlog
 from .http import channel, client
 
-CHANNELS = ["public_sector", "official_apis", "hn", "commoncrawl", "websearch", "wayback"]
+CHANNELS = ["public_sector", "official_apis", "hn", "feeds", "commoncrawl", "websearch", "wayback"]
+
+
+CHANNEL_TIMEOUT_S = 50 * 60  # a hung channel must not stretch a run to the job timeout
 
 
 def run_discovery(channels: list[str]) -> dict[str, int]:
-    """Each channel runs as its own process, in parallel; the shared rate limiter keeps hosts at 1 req/s."""
+    """Each channel runs as its own process, in parallel; the shared rate limiter keeps hosts at 1 req/s.
+    Returns exit codes (124 = killed on timeout). Failures are recorded, and refresh() exits non-zero at the end."""
+    unknown = [c for c in channels if c not in CHANNELS]
+    if unknown:
+        raise ValueError(f"unknown discovery channels {unknown}; known: {CHANNELS}")
     env = {**os.environ, "RADAR_RUN_ID": config.run_id(), "PYTHONIOENCODING": "utf-8"}
     procs = {}
     for ch in channels:
         log = open(config.run_dir() / f"discover_{ch}.out", "w", encoding="utf-8")
         procs[ch] = (subprocess.Popen([sys.executable, "-m", "radar", "discover", ch], cwd=config.ROOT, env=env,
                                       stdout=log, stderr=subprocess.STDOUT), log)
-    codes = {}
+    codes, deadline = {}, time.time() + CHANNEL_TIMEOUT_S
     for ch, (p, log) in procs.items():
-        codes[ch] = p.wait()
-        log.close()
+        try:
+            codes[ch] = p.wait(timeout=max(1, deadline - time.time()))
+        except subprocess.TimeoutExpired:
+            p.kill()
+            codes[ch] = 124
+            log.write(f"\n[TIMEOUT] channel {ch} exceeded {CHANNEL_TIMEOUT_S}s and was killed\n")
+        finally:
+            log.close()
+    for ch, c in codes.items():
+        if c != 0:
+            runlog.record_channel(f"discover:{ch}", failures=[f"channel process exited {c}; see data/runs/{config.run_id()}/discover_{ch}.out"],
+                                  notes="crashed" if c != 124 else "timed out")
     return codes
 
 
@@ -84,7 +102,8 @@ def digest(summary: dict) -> str | None:
     return None
 
 
-def finish(results, closed, verify_leads: bool = True) -> dict:
+def finish(results, closed, verify_leads: bool = True, codes: dict[str, int] | None = None,
+           expected: list[str] | None = None) -> dict:
     with channel("phase4:verify-score"):
         posts, stats = phase4.run(verify_leads)
     batches = phase4.export_judgments(posts)
@@ -105,18 +124,43 @@ def finish(results, closed, verify_leads: bool = True) -> dict:
     extra = [("Phase 4 verification", "```\n" + json.dumps({k: v for k, v in stats.items()}, indent=1, default=str) + "\n```"),
              ("Fit-row check", f"{summary['fit']} verified fit rows vs 11 in the seed list. " +
               ("Meets the bar." if fits_ok else "Below the seed count; see closed and unverifiable seed rows above for why."))]
-    runlog.write_run_log(extra)
+    from . import health
+
+    alerts = health.record(codes, expected)
+    summary["alerts"] = alerts
+    runlog.write_run_log([health.section(alerts)] + extra)
     return summary
 
 
+class ChannelFailure(RuntimeError):
+    pass
+
+
 def refresh(skip_discovery: bool = False, channels: list[str] | None = None) -> dict:
-    with channel("phase1:seed-verify"):
-        results, closed = phase1.verify_seeds()
-    phase1.write_report(results, closed)
-    if not skip_discovery:
-        run_discovery(channels or CHANNELS)
-    with channel("phase2:boards"):
-        phase2.run()
-    summary = finish(results, closed)
-    summary["digest"] = digest(summary)
+    """Phases 1-5. Always leaves out/run_log.md behind; exits non-zero (after writing all outputs) when any
+    discovery channel crashed or timed out, so a partial run still delivers its verified rows but can't look green."""
+    codes = None
+    try:
+        with channel("phase1:seed-verify"):
+            results, closed = phase1.verify_seeds()
+        phase1.write_report(results, closed)
+        if not skip_discovery:
+            codes = run_discovery(channels or CHANNELS)
+        with channel("phase2:boards"):
+            phase2.run()
+        summary = finish(results, closed, codes=codes, expected=None if skip_discovery else (channels or CHANNELS))
+    except Exception as e:
+        try:
+            runlog.write_run_log([("FAILURE", f"refresh() raised {type(e).__name__}: {e}. The traceback is in the Actions log.")])
+        finally:
+            raise
+    try:  # the outputs are already written; a mail or ntfy failure must not fail the run
+        summary["digest"] = digest(summary)
+    except Exception as e:
+        summary["digest"] = f"failed: {type(e).__name__}: {e}"
+    failed = {ch: c for ch, c in (codes or {}).items() if c != 0}
+    if failed:
+        print(json.dumps(summary, indent=2, ensure_ascii=False, default=str))
+        raise ChannelFailure(f"discovery channels failed {failed}; outputs were still written; "
+                             f"see data/runs/{config.run_id()}/discover_<channel>.out")
     return summary
