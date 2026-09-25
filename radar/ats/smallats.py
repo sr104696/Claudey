@@ -38,13 +38,22 @@ def sr_pull(slug: str, company: str, source: str = "board:smartrecruiters") -> t
 
 # ------------------------------------------------------------------------ Workable
 WK = "https://apply.workable.com/api"
+# Workable answers bursts of account probes with 429. After the first one, stop probing it for the rest of
+# the run: a 429 means "not checked", not "no board", and phase2.detect() reports it that way.
+wk_rate_limited = False
 
 
 def wk_probe(slug: str) -> tuple[bool, int]:
+    global wk_rate_limited
+    if wk_rate_limited:
+        return False, -1
     r = probe_client().post_json(f"{WK}/v3/accounts/{slug}/jobs", {"query": "", "location": [], "department": [], "worktype": [], "remote": []})
     if r.ok:
         d = r.json()
         return True, d.get("total", len(d.get("results", [])))
+    if r.status == 429 or "HTTP 429" in (r.error or ""):
+        wk_rate_limited = True
+        return False, -1
     return False, 0
 
 
