@@ -14,7 +14,7 @@ This project finds, verifies and scores open job postings for one candidate, the
 
 ## What he wants
 
-He wants work organized around investigating, reading primary sources, synthesizing and writing a decision-useful conclusion. The questions should be bounded, with advisory judgment as the output. He doesn't want court time, discovery, sales or quota, spreadsheet production, generic strategy or admin. He's optimizing for high pay and unusual work.
+He wants work organized around investigating, reading primary sources, synthesizing and writing a decision-useful conclusion. The questions should be bounded, with advisory judgment as the output. He doesn't want court time, discovery, sales or quota, spreadsheet production, generic strategy or admin. He's optimizing for high pay and unusual work. Listed base pay must clear $150K, and $200K+ is preferred. Government seats are out (pay ceiling), and so are law-firm seats (lifestyle), whatever the salary.
 
 ## What the prior research found (use it to score postings)
 

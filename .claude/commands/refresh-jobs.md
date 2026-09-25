@@ -31,7 +31,9 @@ Refresh the job radar and report what changed. Follow CLAUDE.md (rubric and site
 5. **Summarize** for the user: start with the run log's **Silence check** (any source that crashed, went quiet,
    degraded or was skipped, and what that means for coverage). Then, from `out/diff_<today>.md` and the summary JSON:
    counts of new fit rows, new poor-match rows and closed rows, the top 5 new fits (title, company, pay, link),
-   notable pay changes, and whether `out/alumni_leads.md` has alumni leads to check by hand.
+   notable pay changes, whether `out/alumni_leads.md` has alumni leads to check by hand, and a pointer to
+   `out/near_miss_<today>.md` for the user's fit / right-call review. Turn any replies to an earlier digest into rubric
+   or keyword changes before re-scoring.
 
 6. **Commit** `out/`, `data/snapshots/`, `data/source_health.csv`, `data/leads.jsonl`, `data/judgments.jsonl`,
    `data/cc_boards.json`, `data/discovered_boards.csv` and `seeds/` with a message like `Job radar refresh <date>`.

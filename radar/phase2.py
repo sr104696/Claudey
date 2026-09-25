@@ -169,6 +169,8 @@ def detect(row: dict) -> tuple[str, str, str]:
             if ats != "greenhouse" and not full:
                 continue
             return ats, slug, f"probe hit ({n} jobs; board '{label}')"
+    if smallats.wk_rate_limited:
+        return "none", "", "no careers link to a known ATS and no probe hit (greenhouse, lever, ashby, recruitee, bamboohr); workable not checked (HTTP 429 this run, retried next run); smartrecruiters API is robots-blocked"
     return "none", "", "no careers link to a known ATS and no probe hit (greenhouse, lever, ashby, workable, recruitee, bamboohr; smartrecruiters API is robots-blocked)"
 
 

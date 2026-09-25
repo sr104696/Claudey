@@ -165,6 +165,9 @@ def years_mentions(text: str) -> list[YearsMention]:
             continue
         if lo > 25:
             continue
+        # "at least 18 years of age" and "for over 25 years, Axiom has ..." are not experience asks
+        if re.match(r"\s*(of age|old|or older)\b", after, re.I) or re.search(r"\bfor (over|more than|nearly|almost)\s*$", before, re.I):
+            continue
         ctx = re.sub(r"\s+", " ", (before[-40:] + text[m.start() : m.end()] + after[:70])).strip()
         out.append(YearsMention(lo, hi, ctx))
     return out

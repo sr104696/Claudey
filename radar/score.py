@@ -48,6 +48,29 @@ OFF_TARGET_PRACTICE = re.compile(
 )
 TARGET_PRACTICE = re.compile(r"regulat|policy|risk|payments|credit|litigation|investigat|enforcement|compliance counsel|product counsel|governance|crypto|digital asset|stablecoin|derivatives|market", re.I)
 LAW_FIRM_ASSOCIATE = re.compile(r"\bbillable|our (attorneys|lawyers|clients)|law firm associate|join our [\w ]*(practice|group)|am ?law", re.I)
+# Seth, 2026-09-25: law firms are out for lifestyle reasons, government is out on pay; listed pay must clear $150K
+LAW_FIRM_NAME = re.compile(r"\b(LLP|L\.L\.P\.|PLLC|P\.C\.|LPA)\b|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
+LAW_FIRM_TEXT = re.compile(r"\bbillable hours?\b|\bam ?law\b|\bour (law )?firm(’|')?s? (attorneys|lawyers|partners|clients)\b", re.I)
+GOVERNMENT_NAME = re.compile(
+    r"\bdepartment of\b|\boffice of the\b|attorney general|comptroller|\bstate of\b|\bcity of\b|\bcounty\b|"
+    r"\bNYS\b|new york state|\bU\.?S\.? (securities|department|attorney)|\bsecurities and exchange commission\b|"
+    r"\bcommodity futures trading commission\b|\bFDIC\b|comptroller of the currency|\bCFPB\b|consumer financial protection bureau|"
+    r"\bFinCEN\b|district attorney|public defender|\bcourts?\b.*\b(unified|judiciary)\b",
+    re.I,
+)
+QUASI_PUBLIC_OK = ("public_sector:finra", "public_sector:ny_fed")  # SRO and the NY Fed pay private-sector ranges; the pay floor decides
+PAY_FLOOR = 150_000
+
+
+def is_government(p: Posting) -> bool:
+    src = [s for s in p.sources if s.startswith(("public_sector:", "official_apis:usajobs"))]
+    if src and not all(s in QUASI_PUBLIC_OK for s in src):
+        return True
+    return p.ats == "nyag" or bool(GOVERNMENT_NAME.search(p.company or ""))
+
+
+def is_law_firm(p: Posting) -> bool:
+    return bool(LAW_FIRM_NAME.search(p.company or "") or LAW_FIRM_TEXT.search(p.description or ""))
 
 
 def desc_hash(p: Posting) -> str:
@@ -165,6 +188,14 @@ def score(p: Posting) -> Posting:
         sig.append(f"{p.years_required} years required (2–5 band)")
 
     # ------------------------------------------------------ poor-match (not hard)
+    # employer-level and pay reasons first: they settle the row whatever else the posting says
+    if is_government(p):
+        poor.append("Government seat (pay ceiling below his target)")
+    elif is_law_firm(p) and not re.search(r"underwrit|research|analyst", title, re.I):
+        poor.append("Law-firm seat (lifestyle)")
+    top = p.pay_max or p.pay_min
+    if p.pay_type == "base" and top and (p.pay_period or "year") in ("year", "annual", "") and top < PAY_FLOOR:
+        poor.append(f"Listed pay tops out below $150K ({p.pay_display})")
     floor = (j or {}).get("meets_floor")
     fy = (j or {}).get("domain_floor_years")
     dom = (j or {}).get("domain") or ""
