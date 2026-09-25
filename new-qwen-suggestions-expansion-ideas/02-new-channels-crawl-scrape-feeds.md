@@ -16,7 +16,7 @@ posting URLs found there:
 | Platform | Public listing pattern | robots/rate notes |
 |---|---|---|
 | Greenhouse | already CDX-covered; add `boards-api.greenhouse.io/v1/boards/<token>/jobs` per token found anywhere (already used by ats/greenhouse.py) | generous, documented |
-| SmartRecruiters | `smartrecruiters.com/api/companies/<company>/jobs?format=json` — public JSON per company; api.smartrecruiters.com is robots-blocked but the **cdn.smartrecruiters.com** sitemap index lists all companies' job JSONs; test which path robots allows; fallback: employer-hosted JSON-LD pages | robots conflict → keep exempt list user-approved only |
+| SmartRecruiters | `api.smartrecruiters.com/v1/companies/<co>/jobs` is public JSON but its robots.txt disallows every agent except LinkedInBot (already noted in `radar/ats/smallats.py`) → do **not** call it. Compliant routes: employer-hosted posting pages carry JSON-LD `JobPosting` (parse via existing html.py), and `<company>.smartrecruiters.com/rss` feed paths where present — verify robots on that host before use | robots conflict → only via user-approved exempt list, else JSON-LD pages |
 | Breezy | `breezy.hr/xml-feeds` per tenant: `<tenant>.breezy.hr/xml-feeds` full RSS of all postings | keyless, no rate doc, be polite |
 | JazzHR | `<tenant>.applytojob.com` + `/feed` RSS on each board | keyless |
 | Personio | `<company>.jobs.personio.de/xml` public XML feed (some US cos use it) | keyless |

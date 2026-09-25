@@ -33,8 +33,8 @@ Glassdoor scraping, no login/captcha/paywall bypass, verify-before-list, keys in
    government-contract protests (BPA/GAO bid protest teams at Baker Botts-style boutiques).
 3. **Sitemap-first harvesting beats CDX for known hosts**: most ATS platforms publish full
    `/sitemap.xml` or `/jobs-sitemap.xml`; Greenhouse/Lever/Ashby boards also expose JSON-LD
-   `JobPosting` on every page — crawl sitemaps of ~30 ATS/career-platform domains (SmartRecruiters
-   public JSON-LD pages, Breezy, JazzHR, Personio, BambooHR, Teamtailor, Recruitee, Workable,
+   `JobPosting` on every page — crawl sitemaps/feeds of ~30 ATS/career-platform domains (Breezy,
+   JazzHR, Personio, BambooHR, Teamtailor, Recruitee, Workable,
    Joinrs, Homerun, Postings.io, Potentia, myworkdayjobs tenant sitemaps) instead of guessing tokens.
 4. **Keyless aggregation endpoints**: HN Algolia API (`hn.algolia.com/api/v1/search_by_date` —
    replaces HTML parsing of whoishiring threads and gives freshness), Google Jobs structured-data
