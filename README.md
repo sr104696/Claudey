@@ -35,6 +35,7 @@ re-scores, summarizes the diff and commits the outputs.
 | `out/jobs.csv` | every kept posting with every field, including the long tail not shown in the markdown (`bucket=low`) |
 | `out/diff_<date>.md` | new, closed, and pay or requirement changes since the last run |
 | `out/run_log.md` | starts with the **Silence check** (sources that crashed, went quiet or were skipped), then per-channel counts, blocks, failures, every request |
+| `out/near_miss_<date>.md` | up to 12 poor-match rows closest to the fit line, for a quick fit / right-call review that tunes the rubric |
 | `out/alumni_leads.md` | alumni-board jobs from your alert emails that couldn't be matched on an employer site |
 | `out/recurrence.md` | how often the watched seats reopen (Wayback Machine) |
 | `out/seed_verification_<date>.md` | the Phase 1 re-check of the seed list |
@@ -81,10 +82,12 @@ Any public JSON, RSS or Atom job feed: add one row to `seeds/feeds.csv` (`url, f
 
 ## Scoring notes
 
-The CLAUDE.md rubric is applied in `radar/score.py`. Three extra poor-match rules encode the
+The CLAUDE.md rubric is applied in `radar/score.py`. Extra poor-match rules encode the
 "what he wants" section: in-house seats in off-target practice areas (employment, real estate,
-commercial contracts, corporate/securities, IP, tax), law-firm associate seats, and contract or
-hourly work. A posting needs 3 of the 10 fit signals for the fit table. Judgment calls
+commercial contracts, corporate/securities, IP, tax), government seats, law-firm seats, listed base
+pay topping out below $150K, and contract or hourly work. A posting needs 3 of the 10 fit signals for
+the fit table. The fit table is one list ordered best-first: seat-family roles (★), then roles whose
+experience bar he meets, then listed pay ($200K+ ahead of $150K+). Judgment calls
 (sales-attached, domain-years floor, litigation accepted) come from subagents and are cached in
 `data/judgments.jsonl` by posting and description hash, so unchanged postings aren't re-judged.
 

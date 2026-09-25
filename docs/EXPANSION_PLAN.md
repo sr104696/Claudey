@@ -149,14 +149,22 @@ Confidence: H/M/L. Each has its cheapest test.
 
 ---
 
-## 8. Open questions only Seth can answer
+## 8. Seth's answers (2026-09-25) and what changed
 
-1. **Q1 (split table).** Should the list lead with a "Thesis seats" table (the five seat families plus credit intel) and move other in-house counsel fits to a second table? Or keep one table ranked by thesis membership?
-2. **Q2 (court time).** Should government litigator seats (NY AG appellate or civil litigation, prosecution) be poor-match like law-firm associate seats? Investigation-titled AG seats would stay.
-3. **Q3 (Google Alerts).** Will you create about 15 Google Alerts (RSS delivery) from a list I draft, and paste the RSS URLs into `seeds/alerts.csv`? They can only be created in a browser under your account.
-4. **Q4 (recruiters).** Which recruiter or newsletter alerts do you already receive or will subscribe to (BarkerGilmore, Major Lindsey, Kinney, Lippman Jungers), so `import-inbox` can recognize them?
-5. **Q5 (near-miss).** Will you review a weekly near-miss digest of about 10 rows, one line each? That review is the rubric's learning loop.
-6. **Q6 (key).** OK to add a Brave Search API key (free tier) to `.env` and to the GitHub Actions secrets, so web search runs without Claude?
+1. **Q1: one table.** Built. It is ordered best-first: ★ seat-family roles, then roles whose experience bar he meets, then listed pay ($200K+ ahead of $150K+), then rubric signals (`output.fit_order`). This replaces P2's two-table split.
+2. **Q2: government is out; law firms are out; pay must clear $150K, ideally $200K+.** Built in `score.py` as poor-match rules:
+   - `is_government`: public-sector sources, the NY AG adapter, and agency names. FINRA and the NY Fed are left to the pay floor.
+   - `is_law_firm`: LLP/PLLC/P.C. names, and "billable hours" or "Am Law" in the text. Underwriting, research and analyst titles are kept.
+   - Listed annual base topping out below $150K is poor-match. Rows without listed pay stay in, because the rubric forbids estimating.
+
+   This replaces P3 and is recorded in CLAUDE.md.
+3. **Q5: near-miss review, yes if useful.** Built. `out/near_miss_<date>.md` lists up to 12 rows each run. Rows already settled by the government, law-firm or pay rules are left out. Reply **fit** or **right call** per row.
+4. **Nothing further required of Seth.** Google Alerts (Q3), recruiter subscriptions (Q4) and the Brave key (Q6) each need a step from him, so they're parked. F1 and F3 stay unbuilt unless he opts in. F2 (query rotation) runs through `/refresh-jobs` as it does today.
+
+Impact on the 2026-09-25 data (a replay of the new rules over `out/jobs.csv`): the fit table goes from 57 to 38 rows.
+- Out as government: all 12 NY AG, DFS and State Comptroller rows.
+- Out on pay: 7 rows, among them Point72 Canvas (both seats, $81K–$100K), ACLU, Guggenheim's restructuring attorney ($145K top), Palantir and Coinbase.
+- The top 8 are now all ★ seat-family rows, led by Burford, Harvey, Citi Regulatory Engagement and Bridgewater.
 
 ---
 

@@ -62,6 +62,45 @@ def _company(p: Posting) -> str:
     return _esc(p.company) + (" (already in your pipeline)" if p.pipeline else "")
 
 
+def is_thesis(p: Posting) -> bool:
+    return any(s.startswith("seat family:") for s in p.fit_signals)
+
+
+def fit_order(p: Posting):
+    """One table, most promising first: seat families that loosen the domain-years screen, then rows whose
+    domain floor he meets, then listed pay ($200K+ first, per Seth), then rubric signals."""
+    top = p.pay_max or p.pay_min or 0
+    mid = ((p.pay_min or top) + top) / 2 if top else 0
+    tier = 2 if mid >= 200_000 else 1 if mid >= 150_000 else 0
+    return (not is_thesis(p), "(meets: Y)" not in (p.domain_floor or ""), -tier, -p.fit_score, -top, p.company)
+
+
+NEAR_MISS_MAX = 12
+_SETTLED = ("Government seat", "Law-firm seat", "Law-firm associate seat", "Listed pay tops out")
+
+
+def near_misses(posts: list[Posting]) -> list[Posting]:
+    """Poor-match rows closest to the line: soft reasons with 4+ signals, or pattern excludes on 5+ signals."""
+    def close(p: Posting) -> bool:
+        if p.bucket != "poor" or any(s in p.poor_reason for s in _SETTLED):
+            return False
+        return (not p.hard_exclude_reason and p.fit_score >= 4) or p.fit_score >= 5
+    return sorted([p for p in posts if close(p)], key=lambda p: (-p.fit_score, -(p.pay_max or p.pay_min or 0), p.company))[:NEAR_MISS_MAX]
+
+
+def write_near_miss(posts: list[Posting], today: dt.date) -> str:
+    rows = near_misses(posts)
+    L = ["# Near misses", "", f"Run {ap_date(today)}. The {len(rows)} poor-match rows closest to the fit line. "
+         "Reply per row with **fit** (the rule was wrong), **right call**, or a one-line reason; "
+         "those replies become rubric and keyword changes.", "",
+         "| # | Position | Company | Listed pay | Signals | Why it missed |", "|---|---|---|---|---|---|"]
+    L += [f"| {i} | [{_esc(p.title)}]({p.url}) | {_company(p)} | {_esc(p.pay_display)} | {p.fit_score} | {_esc(p.poor_reason)[:220]} |"
+          for i, p in enumerate(rows, 1)] or ["", "None this run."]
+    path = config.OUT / f"near_miss_{today.isoformat()}.md"
+    path.write_text("\n".join(L) + "\n", encoding="utf-8")
+    return str(path)
+
+
 def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     run = config.today()
     base_label, prev = previous_rows(run)
@@ -73,7 +112,7 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
 
     new = {p.key: (prior(p) is None and not p.pipeline) for p in posts}
     order = lambda p: (-p.fit_score, -(p.pay_max or p.pay_min or 0), p.company)
-    fit = sorted([p for p in posts if p.bucket == "fit"], key=order)
+    fit = sorted([p for p in posts if p.bucket == "fit"], key=fit_order)
     poor = sorted([p for p in posts if p.bucket == "poor"], key=order)
     outside = sorted([p for p in posts if p.bucket == "outside" and not p.poor_reason], key=order)
     today = dt.date.today()
@@ -81,8 +120,11 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     L = ["# Open positions", "",
          f"Checked on {ap_date(today)}. Links go straight to each posting. Rows marked † are new since the last run "
          f"({base_label if base_label == 'seed list' else ap_date(base_label)}).", "",
-         "## Postings that fit your profile", "", "| Position | Company | Location | Listed pay |", "|---|---|---|---|"]
-    L += [f"| {_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} |" for p in fit]
+         "## Postings that fit your profile", "",
+         "Best first: ★ marks the seat families where your background clears the domain-years screen, then roles whose "
+         "experience bar you meet, then listed pay ($200K+ ahead of $150K+).", "",
+         "| Position | Company | Location | Listed pay |", "|---|---|---|---|"]
+    L += [f"| {'★ ' if is_thesis(p) else ''}{_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} |" for p in fit]
     L += ["", "## Also open, but a poor match", "", "| Position | Company | Location | Listed pay | Why it's a poor match |", "|---|---|---|---|---|"]
     L += [f"| {_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} | {_esc(p.poor_reason)} |" for p in poor]
     L += ["", "## Outside NYC / US-remote", "", "Roles elsewhere in the US that would otherwise fit. Weaker out-of-area matches are in jobs.csv.", "",
@@ -138,8 +180,10 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     diff = config.OUT / f"diff_{today.isoformat()}.md"
     diff.write_text("\n".join(D) + "\n", encoding="utf-8")
 
+    near = write_near_miss(posts, today)
+
     new_fit = [p for p in fit if new[p.key]]
-    return {"open_positions": str(md), "diff": str(diff), "fit": len(fit), "poor": len(poor), "outside": len(outside),
+    return {"open_positions": str(md), "diff": str(diff), "near_miss": near, "fit": len(fit), "poor": len(poor), "outside": len(outside),
             "new_fit": len(new_fit), "new_poor": sum(new[p.key] for p in poor), "new_outside": sum(new[p.key] for p in outside),
             "closed": len(gone), "top_new_fits": [f"{p.title} | {p.company} | {p.pay_display} | fit {p.fit_score} | {p.url}" for p in new_fit[:5]],
             "baseline": base_label}
