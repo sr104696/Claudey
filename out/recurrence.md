@@ -12,6 +12,8 @@ Built 2026-09-28 from Wayback CDX captures since 2023-09. Capture dates are uppe
 | Octus (Reorg) | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
 | 9fin | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
 
+Failures: www.harvey.ai/company/careers/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused)
+
 ### Point72: academy / analyst program
 
 | Title | First captured | Last captured |
