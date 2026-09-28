@@ -128,3 +128,68 @@ def test_non_workday_tenant_hints_are_not_read_as_workday(monkeypatch):
     ats, _, _ = phase2.detect({"company": "DTCC Test Co", "careers_url": "", "ats_hint": "oraclehcm",
                                "ats_slug_or_tenant": "ebxr|us2|CX_1", "confidence": "verified_url"})
     assert ats == "none" and called == []
+
+
+def _html(body, status=200):
+    return Result(url="https://example.test", status=status, headers={"content-type": "text/html"},
+                  content=body.encode())
+
+
+def test_rlegaltech_parses_vendor_apply_blocks():
+    from radar.discover import rlegaltech
+
+    html = """
+    <html><body>
+    <h2>Featured</h2>
+    <ol><li><strong>R&D Attorney</strong> GC AI - Remote
+      <a href="https://jobs.ashbyhq.com/gc-ai/8d33e41c-f666-4178-91fc-89787931935c/application?utm_source=rlegaltech.com">Apply</a>
+    </li></ol>
+    <h3><a href="/vendors/abbyy/jobs/">ABBYY</a></h3>
+    <span>7 open</span>
+    <ul>
+      <li>
+        <h4>Data Engineer</h4>
+        <div>Budapest, Hungary (Hybrid) Hybrid Employment type not listed <a href="/jobs/engineering/">Engineering</a></div>
+        <div>Source checked 23 Sept 2026</div>
+        <a href="https://job-boards.eu.greenhouse.io/abbyy/jobs/4960440101?utm_source=rlegaltech.com&gh_src=rlegaltech">Apply</a>
+      </li>
+    </ul>
+    <h3><a href="/vendors/harvey/jobs/">Harvey</a></h3>
+    <span>3 open</span>
+    <ul>
+      <li>
+        <h4>Senior Public Sector Counsel</h4>
+        <div>Remote (United States) Remote Full time <a href="/jobs/legal/">Legal</a></div>
+        <div>Source checked 23 Sept 2026</div>
+        <a href="https://jobs.ashbyhq.com/harvey/8bec95c8-b625-49e9-bd82-c8eb83e170ee/application?utm_source=rlegaltech.com&utm_medium=jobs_directory">Apply</a>
+      </li>
+    </ul>
+    </body></html>
+    """
+    leads = rlegaltech._parse(html)
+    urls = {l.url for l in leads}
+    # utm_ params stripped from the kept ATS URL
+    assert "https://jobs.ashbyhq.com/harvey/8bec95c8-b625-49e9-bd82-c8eb83e170ee/application" in urls
+    harvey = next(l for l in leads if "harvey" in l.url)
+    assert harvey.title == "Senior Public Sector Counsel"
+    assert harvey.company == "Harvey"
+    # the EU Greenhouse subdomain isn't in ATS_URL and Budapest isn't a kept location either way
+    assert not any("abbyy" in u for u in urls)
+
+
+def test_rlegaltech_run_records_channel(monkeypatch):
+    from radar.discover import rlegaltech
+
+    page = """
+    <h3>Harvey</h3><span>1 open</span>
+    <ul><li><h4>Senior Public Sector Counsel</h4>
+    <div>Remote (United States) Remote Full time</div>
+    <a href="https://jobs.ashbyhq.com/harvey/8bec95c8-b625-49e9-bd82-c8eb83e170ee/application">Apply</a>
+    </li></ul>
+    """
+    fake = type("Fake", (), {"get": staticmethod(lambda url, **kw: _html(page))})()
+    monkeypatch.setattr(rlegaltech, "client", lambda: fake)
+    seen = []
+    monkeypatch.setattr(rlegaltech, "add_leads", lambda leads: seen.extend(leads))
+    out = rlegaltech.run()
+    assert out["leads"] == 1 and len(seen) == 1
