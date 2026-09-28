@@ -55,6 +55,8 @@ Fit signals, each worth a point:
 
 Record as fields: `fit_score` (count of signals), `hard_exclude_reason` (or empty), `years_required`, `pay_min`, `pay_max`, `pay_type` (base / OTE / hourly / not listed), `jd_required` (Y/N/pref), `sales_attached` (Y/N).
 
+**Every in-house legal seat is in scope**, long shots and off-interest practice areas included — he applies to those anyway. A posting with "counsel," "attorney," "lawyer" or "legal" in its title never goes to the poor-match table for its practice area or for missing years in a named domain; it only goes there for one of the hard excludes above, the law-firm/government/pay-floor rules, or genuinely not being an employee seat (contract platform, event, talent pool). Otherwise it's ranked on fit signals like everything else — fit is broad but realistic and fair, and a low score is itself the "long shot" signal, not a reason to exclude it. The years-in-domain floor is still a real screen for the seats in the five seat families above that aren't legal-titled at all (credit risk manager, investment analyst program, litigation-finance underwriting, and so on) — there, years in the named domain is the actual ask.
+
 ## Rules
 
 - **Verify before listing.** Every row must come from a fetch you made in this run that shows the posting is open. Snippets and aggregator titles are leads, not evidence.

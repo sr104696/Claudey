@@ -93,3 +93,39 @@ def test_law_firm_suffixes_at_end_of_name():
         assert score.LAW_FIRM_NAME.search(name), name
     for name in ("Pagaya", "Spa Holdings", "LPL Financial", "Capital Markets PA Inc"):
         assert not score.LAW_FIRM_NAME.search(name), name
+
+
+def test_offtarget_practice_inhouse_counsel_stays_in_fit_not_poor():
+    # Employment/real-estate/tax etc. are off-target practice areas, but he wants every in-house legal
+    # seat included and ranked, not excluded, as long as it clears the pay floor and isn't a hard exclude.
+    p = score.score(posting(title="Employment Counsel",
+                            body="Employment law counsel for a growing company. 3-5 years of employment law "
+                                 "experience required. Base salary $180,000-$220,000."))
+    assert p.bucket == "fit", p.poor_reason
+    assert "Practice area outside" not in p.poor_reason
+    assert "Generalist or off-target" not in p.poor_reason
+
+
+def test_weak_fit_gate_does_not_poor_match_inhouse_legal_titles():
+    # Even a low-signal generalist in-house counsel role stays in "fit" (ranked low), never "poor",
+    # as long as pay clears the floor and nothing else hard-excludes it.
+    p = score.score(posting(title="Corporate Counsel",
+                            body="Generalist in-house counsel for commercial contracts and corporate matters. "
+                                 "Base salary $160,000."))
+    assert p.bucket == "fit", p.poor_reason
+    assert p.fit_score < score.FIT_MIN
+    assert "Weak fit" not in p.poor_reason
+
+
+def test_domain_floor_miss_still_poor_matches_non_legal_seat_families(monkeypatch):
+    # The years-in-domain floor is still a real screen for the seat families that aren't in-house legal
+    # titles at all, e.g. a business-side credit-risk-manager seat judged as not meeting the domain floor.
+    p_in = posting(title="Credit Risk Manager", company="SomeBank",
+                   body="5+ years of consumer lending credit risk experience required. Base salary $180,000.")
+    monkeypatch.setattr(score, "judgment_for", lambda p: {
+        "meets_floor": "N", "domain_floor_years": 5, "domain": "consumer lending credit risk",
+        "rationale": "asks for direct consumer-lending credit experience he lacks",
+    })
+    p = score.score(p_in)
+    assert p.bucket == "poor"
+    assert "consumer lending credit risk" in p.poor_reason
