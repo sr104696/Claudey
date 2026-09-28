@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import re
 
-from ..extract import classify_location
+from ..extract import IN_AREA, classify_location
 from ..keywords import relevance
 from ..models import Lead, Posting
 
-KEEP = ("nyc", "us_remote", "us_other")
+KEEP = IN_AREA + ("us_other",)
 ATS_URL = re.compile(
     r"https?://(?:job-boards|boards)\.greenhouse\.io/[\w.-]+/jobs/\d+|https?://jobs\.lever\.co/[\w.-]+/[0-9a-f-]{36}"
     r"|https?://jobs\.ashbyhq\.com/[\w.-]+/[0-9a-f-]{36}|https?://[\w-]+\.wd\d+\.myworkdayjobs\.com/[^\s\"'<>]+"

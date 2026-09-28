@@ -102,13 +102,26 @@ def digest(summary: dict) -> str | None:
     return None
 
 
+def apply_committed_judgments() -> int:
+    """Judgments a Claude session committed to data/judgments/results/*.json are merged before anything is scored."""
+    if not any(phase4.RESULTS.glob("*.json")):
+        return 0
+    n = phase4.apply_judgments()
+    print(f"applied {n} committed judgments from {phase4.RESULTS}", file=sys.stderr)
+    return n
+
+
 def finish(results, closed, verify_leads: bool = True, codes: dict[str, int] | None = None,
            expected: list[str] | None = None) -> dict:
+    apply_committed_judgments()  # `score` enters here; refresh() has already applied them (a no-op the second time)
     with channel("phase4:verify-score"):
         posts, stats = phase4.run(verify_leads)
     batches = phase4.export_judgments(posts)
     summary = output.write(posts, closed_notes(results, closed, posts), stats)
     summary["judgment_batches_pending"] = batches
+    from . import aggregate
+
+    summary["all_positions"] = aggregate.write()  # out/all_positions.md across every run; prunes old dated files
     output.dump_stats(stats)
     for src, s in stats.get("by_source", {}).items():
         chans = runlog.load_channels()
@@ -120,9 +133,12 @@ def finish(results, closed, verify_leads: bool = True, codes: dict[str, int] | N
     runlog.record_channel("phase2:boards", **{k: v for k, v in runlog.load_channels().get("phase2:boards", {}).items()
                                                if k in ("queried", "candidates", "failures", "skipped", "notes")},
                           verified_open=stats["boards"], kept=sum(1 for p in posts if any(x.startswith("board:") for x in p.sources)))
-    fits_ok = summary["fit"] >= 11
+    from .seeds import parse_current_list
+
+    seed_fit = sum(1 for r in parse_current_list()[0] if r.section == "fit")
+    fits_ok = summary["fit"] >= seed_fit
     extra = [("Phase 4 verification", "```\n" + json.dumps({k: v for k, v in stats.items()}, indent=1, default=str) + "\n```"),
-             ("Fit-row check", f"{summary['fit']} verified fit rows vs 11 in the seed list. " +
+             ("Fit-row check", f"{summary['fit']} verified fit rows vs {seed_fit} in the seed list. " +
               ("Meets the bar." if fits_ok else "Below the seed count; see closed and unverifiable seed rows above for why."))]
     from . import health
 
@@ -141,6 +157,7 @@ def refresh(skip_discovery: bool = False, channels: list[str] | None = None) -> 
     discovery channel crashed or timed out, so a partial run still delivers its verified rows but can't look green."""
     codes = None
     try:
+        apply_committed_judgments()
         with channel("phase1:seed-verify"):
             results, closed = phase1.verify_seeds()
         phase1.write_report(results, closed)

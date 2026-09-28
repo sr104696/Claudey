@@ -1,8 +1,8 @@
 # Git bundles
 *.bundle
 
-# Worktrees
-pr-staging/wt/
+# agent worktrees
+.claude/worktrees/
 # secrets
 .env
 
@@ -11,7 +11,12 @@ cache/
 
 # per-run scratch (request logs, judgment batches); summaries land in out/
 data/runs/
-data/judgments/
+# judgment batches are committed so a Claude session without network access can judge them (results are applied
+# at the start of the next run); applied result files are not
+data/judgments/*
+!data/judgments/pending/
+!data/judgments/results/
+data/judgments/results/*.applied
 data/.leads.lock
 # saved alert emails are private
 data/inbox/

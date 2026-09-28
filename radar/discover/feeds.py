@@ -32,13 +32,16 @@ def _json_items(d) -> list[dict]:
         company = j.get("company")
         if isinstance(company, dict):
             company = company.get("name")
+        # field names vary by feed: Arbeitnow/findwork use company_name, Himalayas/Jobicy companyName, Jobicy jobTitle,
+        # findwork role, Himalayas locationRestrictions and applicationLink, Jobicy jobGeo and jobDescription
+        loc = j.get("location") or j.get("locationRestrictions") or j.get("jobGeo") or ""
         out.append({
-            "title": j.get("title") or j.get("name") or "",
-            "company": company or j.get("company_name") or "",
-            "location": j.get("location") if isinstance(j.get("location"), str) else ", ".join(j.get("location") or []) if isinstance(j.get("location"), list) else "",
-            "url": j.get("url") or j.get("link") or "",
-            "apply_url": j.get("apply_url") or j.get("applyUrl") or "",
-            "text": html_to_text(j.get("description") or j.get("summary") or ""),
+            "title": j.get("title") or j.get("name") or j.get("jobTitle") or j.get("role") or "",
+            "company": company or j.get("company_name") or j.get("companyName") or "",
+            "location": loc if isinstance(loc, str) else ", ".join(str(x) for x in loc) if isinstance(loc, list) else "",
+            "url": j.get("url") or j.get("link") or j.get("applicationLink") or "",
+            "apply_url": j.get("apply_url") or j.get("applyUrl") or j.get("applicationLink") or "",
+            "text": html_to_text(j.get("description") or j.get("summary") or j.get("jobDescription") or j.get("text") or j.get("excerpt") or ""),
             "remote": bool(j.get("remote")),
         })
     return out

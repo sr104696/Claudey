@@ -1,16 +1,17 @@
 # Seat recurrence (Wayback Machine)
 
-Built 2026-09-25 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
+Built 2026-09-28 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
 
 | Employer | Seat family | Openings found | Per year | Median gap | Watch |
 |---|---|---:|---:|---|---|
 | Point72 | academy / analyst program | 14 | 4.7 | 3 months | check weekly |
 | Debtwire (ION) | legal analyst / bankruptcy / LME / covenant | 4 | 1.3 | 6 months | check every 2 weeks |
 | Octus | legal analyst / bankruptcy / LME / covenant | 3 | 1.0 | 5 months | check every 2 weeks |
-| Burford | underwriting | 3 | 1.0 | 17 months | check monthly |
-| Point72 | research | 2 | 0.7 | n/a (one opening) | check monthly |
+| Point72 | research | 3 | 1.0 | 21 months | check monthly |
 | Octus (Reorg) | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
 | 9fin | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
+
+Failures: careers.burfordcapital.com/job/*: error: gave up after 4 attempts (ConnectTimeout: timed out); www.harvey.ai/company/careers/*: error: gave up after 4 attempts (ConnectTimeout: timed out)
 
 ### Point72: academy / analyst program
 
@@ -48,26 +49,19 @@ Built 2026-09-25 from Wayback CDX captures since 2023-09. Capture dates are uppe
 | [Covenants Lawyer](https://web.archive.org/web/20251014/https://job-boards.greenhouse.io/octus/jobs/4800053007) | 2025-10-14 | 2025-12-14 |
 | [Operations Associate (Covenants)](https://web.archive.org/web/20260520/https://job-boards.greenhouse.io/octus/jobs/5077161007) | 2026-05-20 | 2026-05-20 |
 
-### Burford: underwriting
-
-| Title | First captured | Last captured |
-|---|---|---|
-| [New York Vice President, US Commercial Underwriter NY 10017](https://web.archive.org/web/20241113/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-US-Commercial-Underwriter-NY-10017/1213941100/) | 2024-11-13 | 2024-11-13 |
-| [Chicago Vice President, Patent Underwriting IL 60654](https://web.archive.org/web/20260419/https://careers.burfordcapital.com/job/Chicago-Vice-President%2C-Patent-Underwriting-IL-60654/1331845700/) | 2026-04-19 | 2026-04-19 |
-| [New York Vice President, Commercial Underwriting NY 10017](https://web.archive.org/web/20260419/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-Commercial-Underwriting-NY-10017/1331385600/) | 2026-04-19 | 2026-04-19 |
-
 ### Point72: research
 
 | Title | First captured | Last captured |
 |---|---|---|
 | [research analyst global macro](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=research-analyst-global-macro&jobCode=CSS-0012619&location=New%20York&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2025-12-17 |
 | [fundamental researcher market intelligence canvas](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=fundamental-researcher-market-intelligence-canvas&jobCode=IVS-0012829&location=Singapore&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2024-12-21 |
+| [fundamental research fellowship canvas](https://web.archive.org/web/20260921/https://careers.point72.com/CSJobDetail?retURL=%2FCSCareerSearch&jobName=fundamental-research-fellowship-canvas&jobCode=PMI-0015128&location=New+York&locale=English) | 2026-09-21 | 2026-09-21 |
 
 ### Octus (Reorg): legal analyst / bankruptcy / LME / covenant
 
 | Title | First captured | Last captured |
 |---|---|---|
-| [Legal Analyst](https://web.archive.org/web/20240722/https://boards.greenhouse.io/reorg/jobs/4397897007?utm_source=FinTech+Collective+job+board&utm_medium=getro.com&gh_src=FinTech+Collective+job+board) | 2024-07-22 | 2024-07-22 |
+| [Legal Analyst](https://web.archive.org/web/20231011/https://boards.greenhouse.io/reorg/jobs/4097177007) | 2023-10-11 | 2024-07-22 |
 
 ### 9fin: legal analyst / bankruptcy / LME / covenant
 

@@ -11,7 +11,7 @@ import json
 import re
 
 from . import config
-from .extract import years_mentions
+from .extract import IN_AREA, years_mentions
 from .keywords import flags
 from .models import Posting
 from .textutil import snippet
@@ -50,6 +50,14 @@ TARGET_PRACTICE = re.compile(r"regulat|policy|risk|payments|credit|litigation|in
 LAW_FIRM_ASSOCIATE = re.compile(r"\bbillable|our (attorneys|lawyers|clients)|law firm associate|join our [\w ]*(practice|group)|am ?law", re.I)
 # Seth, 2026-09-25: law firms are out for lifestyle reasons, government is out on pay; listed pay must clear $150K
 LAW_FIRM_NAME = re.compile(r"\b(LLP|L\.L\.P\.|PLLC|P\.C\.|LPA)\b|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
+# Seth, 2026-09-28: knowledge-management / practice-support lawyers at firms are non-billable. Still a law-firm seat
+# (poor match), but a reviewable one: output.near_misses() lets these through instead of treating them as settled.
+LAW_FIRM_NONBILLABLE_TITLE = re.compile(
+    r"knowledge management|\bKM (lawyer|attorney|counsel)\b|practice support|professional support (lawyer|attorney)|"
+    r"practice (attorney|lawyer)|research (attorney|lawyer|counsel)|legal research counsel",
+    re.I,
+)
+LAW_FIRM_NONBILLABLE_REASON = "Law-firm seat, non-billable (knowledge/practice support)"
 LAW_FIRM_TEXT = re.compile(r"\bbillable hours?\b|\bam ?law\b|\bour (law )?firm(’|')?s? (attorneys|lawyers|partners|clients)\b", re.I)
 GOVERNMENT_NAME = re.compile(
     r"\bdepartment of\b|\boffice of the\b|attorney general|comptroller|\bstate of\b|\bcity of\b|\bcounty\b|"
@@ -60,6 +68,9 @@ GOVERNMENT_NAME = re.compile(
 )
 QUASI_PUBLIC_OK = ("public_sector:finra", "public_sector:ny_fed")  # SRO and the NY Fed pay private-sector ranges; the pay floor decides
 PAY_FLOOR = 150_000
+CONTRACT_PLATFORM = re.compile(r"^axiom\b|talent platform", re.I)  # Axiom places lawyers on engagements
+NOT_A_SEAT = re.compile(r"coffee chat|case competition|talent (network|community|pool)|expression of interest|"
+                        r"general interest|future opportunit|open application", re.I)
 
 
 def is_government(p: Posting) -> bool:
@@ -87,7 +98,8 @@ def _role_key(company: str, title: str) -> str:
 
 
 def judgments() -> dict[str, dict]:
-    """Latest judgment per posting key, plus a company+title index so re-posted roles reuse it."""
+    """Latest judgment per posting key, plus a company+title index so re-posted roles reuse it. The company+title
+    entries apply only to a posting with the same desc_hash (see role_judgment); a direct key match always applies."""
     global _judg
     if _judg is None:
         _judg = {}
@@ -101,6 +113,16 @@ def judgments() -> dict[str, dict]:
                     if (p := get_posting(d["key"])):
                         _judg[_role_key(p.company, p.title)] = d
     return _judg
+
+
+def role_judgment(p: Posting) -> dict | None:
+    """The company+title judgment, only when it was made on this exact text (same desc_hash)."""
+    j = judgments().get(_role_key(p.company, p.title))
+    return j if j and j.get("desc_hash") and j.get("desc_hash") == desc_hash(p) else None
+
+
+def judgment_for(p: Posting) -> dict | None:
+    return judgments().get(p.key) or role_judgment(p)
 
 
 SEAT_FAMILIES = [  # CLAUDE.md: the seat families that loosen the Stage 2 domain-years screen
@@ -129,7 +151,7 @@ def score(p: Posting) -> Posting:
     text = p.description or ""
     title = p.title
     both = title + "\n" + text
-    j = judgments().get(p.key) or judgments().get(_role_key(p.company, p.title))
+    j = judgment_for(p)
     sig: list[str] = []
     excl: list[str] = []
     poor: list[str] = []
@@ -191,6 +213,8 @@ def score(p: Posting) -> Posting:
     # employer-level and pay reasons first: they settle the row whatever else the posting says
     if is_government(p):
         poor.append("Government seat (pay ceiling below his target)")
+    elif is_law_firm(p) and LAW_FIRM_NONBILLABLE_TITLE.search(title):
+        poor.append(f"{LAW_FIRM_NONBILLABLE_REASON}: still a law firm, but no billable hours or court time")
     elif is_law_firm(p) and not re.search(r"underwrit|research|analyst", title, re.I):
         poor.append("Law-firm seat (lifestyle)")
     top = p.pay_max or p.pay_min
@@ -213,6 +237,10 @@ def score(p: Posting) -> Posting:
         poor.append(f"Practice area outside the target seats ({OFF_TARGET_PRACTICE.search(t_core).group(0).lower()} work)")
     if re.search(r"\bassociate\b", title, re.I) and LAW_FIRM_ASSOCIATE.search(text) and not re.search(r"underwrit|research|analyst", title, re.I):
         poor.append("Law-firm associate seat (billable practice, court time)")
+    if CONTRACT_PLATFORM.search(p.company or ""):
+        poor.append("Contract-lawyer platform (engagements, not an employee seat)")
+    if NOT_A_SEAT.search(title):
+        poor.append("Event, talent pool or open application, not a seat")
     if p.pay_type == "hourly" or EXCL["contract"].search(title + " " + text[:1500]):
         poor.append("Contract, hourly or part-time engagement" + (f" ({p.pay_display})" if p.pay_type == "hourly" else ""))
 
@@ -231,7 +259,7 @@ def score(p: Posting) -> Posting:
 
     if p.status != "open":
         p.bucket = "closed"
-    elif p.loc_bucket not in ("nyc", "us_remote"):
+    elif p.loc_bucket not in IN_AREA:
         p.bucket = "outside" if p.loc_bucket in ("us_other", "unknown") else "irrelevant"
     elif p.poor_reason:
         # the markdown poor-match table keeps target-family seats and near-fits; the long tail stays in jobs.csv

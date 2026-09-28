@@ -149,6 +149,15 @@ def snapshot(run_id: str) -> list[sqlite3.Row]:
     return conn().execute("SELECT * FROM snapshots WHERE run_id=?", (run_id,)).fetchall()
 
 
+RAW_MAX = 200_000
+
+
+def _raw_json(raw: dict) -> str:
+    """Cutting a JSON string mid-way stores invalid JSON; store a small valid marker instead."""
+    s = json.dumps(raw)
+    return s if len(s) <= RAW_MAX else json.dumps({"_truncated": True, "original_size": len(s)})
+
+
 def upsert_board_jobs(rows: list[dict]) -> None:
     now = config.today()
     with tx() as c:
@@ -161,7 +170,7 @@ def upsert_board_jobs(rows: list[dict]) -> None:
                 "INSERT OR REPLACE INTO board_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (r["ats"], r["board"], r["job_id"], r.get("company"), r.get("title"), r.get("location"),
                  r.get("loc_bucket"), r.get("url"), int(bool(r.get("relevant"))), r.get("relevance_reason", ""),
-                 prev["first_seen"] if prev else now, now, json.dumps(r.get("raw") or {})[:200_000]),
+                 prev["first_seen"] if prev else now, now, _raw_json(r.get("raw") or {})),
             )
 
 
