@@ -119,6 +119,9 @@ def finish(results, closed, verify_leads: bool = True, codes: dict[str, int] | N
     batches = phase4.export_judgments(posts)
     summary = output.write(posts, closed_notes(results, closed, posts), stats)
     summary["judgment_batches_pending"] = batches
+    from . import aggregate
+
+    summary["all_positions"] = aggregate.write()  # out/all_positions.md across every run; prunes old dated files
     output.dump_stats(stats)
     for src, s in stats.get("by_source", {}).items():
         chans = runlog.load_channels()

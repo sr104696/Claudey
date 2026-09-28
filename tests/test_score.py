@@ -71,3 +71,11 @@ def test_direct_key_judgment_applies_whatever_the_hash(monkeypatch):
     p = posting(job_id="7")
     monkeypatch.setattr(score, "_judg", {p.key: {"key": p.key, "desc_hash": "stale", "hard_exclude": "Judge: no"}})
     assert score.score(p).hard_exclude_reason == "Judge: no"
+
+
+def test_contract_platform_and_non_seat_listings_are_poor():
+
+    p = score.score(posting(company="Axiom Talent Platform", title="Capital Markets Attorney"))
+    assert p.bucket == "poor" and "Contract-lawyer platform" in p.poor_reason
+    p = score.score(posting(company="Point72", title="Point72 Academy Coffee Chats — Class of 2029 (US)"))
+    assert p.bucket == "poor" and "not a seat" in p.poor_reason

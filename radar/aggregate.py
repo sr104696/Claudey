@@ -69,7 +69,9 @@ def same_role(rows: list[dict]) -> list[dict]:
     """Merge one role posted on two boards (same title, pay and location); keep the pipeline/registry copy."""
     out, index = [], {}
     for r in rows:
-        k = (norm_title(r.get("title", "")), r.get("pay_display", ""), (r.get("location") or "").lower()[:40])
+        # company prefix too: 'Norm AI' and 'Normlaw' post the same role; two firms' identical "Product Counsel" don't merge
+        k = (norm_company(r.get("company", ""))[:4], norm_title(r.get("title", "")), r.get("pay_display", ""),
+             (r.get("location") or "").lower()[:40])
         if k in index and r.get("pay_display") not in ("", "Not listed"):
             continue
         index[k] = r

@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     il = sub.add_parser("import-leads", help="append leads from a JSONL file")
     il.add_argument("file")
     il.add_argument("--source", help="override the source field on every lead")
+    sub.add_parser("aggregate", help="rebuild out/all_positions.md from every run's snapshot")
     rf = sub.add_parser("refresh", help="phases 1-5 end to end")
     rf.add_argument("--skip-discovery", action="store_true", help="reuse leads already gathered today")
     rf.add_argument("--channels", nargs="*", help="discovery channels to run (default: all)")
@@ -71,6 +72,10 @@ def main(argv: list[str] | None = None) -> int:
         for c in closed:
             print(f"{c.status:13} {c.label[:80]}")
 
+    elif args.cmd == "aggregate":
+        from . import aggregate
+
+        print(json.dumps(aggregate.write(), indent=1))
     elif args.cmd == "boards":
         from . import phase2, runlog
 

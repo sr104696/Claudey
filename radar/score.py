@@ -68,6 +68,9 @@ GOVERNMENT_NAME = re.compile(
 )
 QUASI_PUBLIC_OK = ("public_sector:finra", "public_sector:ny_fed")  # SRO and the NY Fed pay private-sector ranges; the pay floor decides
 PAY_FLOOR = 150_000
+CONTRACT_PLATFORM = re.compile(r"^axiom\b|talent platform", re.I)  # Axiom places lawyers on engagements
+NOT_A_SEAT = re.compile(r"coffee chat|case competition|talent (network|community|pool)|expression of interest|"
+                        r"general interest|future opportunit|open application", re.I)
 
 
 def is_government(p: Posting) -> bool:
@@ -234,6 +237,10 @@ def score(p: Posting) -> Posting:
         poor.append(f"Practice area outside the target seats ({OFF_TARGET_PRACTICE.search(t_core).group(0).lower()} work)")
     if re.search(r"\bassociate\b", title, re.I) and LAW_FIRM_ASSOCIATE.search(text) and not re.search(r"underwrit|research|analyst", title, re.I):
         poor.append("Law-firm associate seat (billable practice, court time)")
+    if CONTRACT_PLATFORM.search(p.company or ""):
+        poor.append("Contract-lawyer platform (engagements, not an employee seat)")
+    if NOT_A_SEAT.search(title):
+        poor.append("Event, talent pool or open application, not a seat")
     if p.pay_type == "hourly" or EXCL["contract"].search(title + " " + text[:1500]):
         poor.append("Contract, hourly or part-time engagement" + (f" ({p.pay_display})" if p.pay_type == "hourly" else ""))
 

@@ -106,6 +106,11 @@ def test_name_collision_guard_skips_generic_names(monkeypatch):
     assert ats == "lever" and slug == "towerresearchcapital"
 
 
+def test_distinctive_one_word_names_stay_guessable():
+    assert not phase2._generic_name("EvenUp") and not phase2._generic_name("Spellbook") and not phase2._generic_name("Klarna")
+    assert phase2._generic_name("LCM") and phase2._generic_name("ICE") and phase2._generic_name("Parabellum")
+
+
 def test_name_collision_guard_allows_own_domain_label(monkeypatch):
     monkeypatch.setattr(phase2, "PROBES", [("lever", lambda slug: (slug == "parabellum", 3))])
     monkeypatch.setattr(phase2, "_scan_careers", lambda url: None)

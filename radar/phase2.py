@@ -40,6 +40,8 @@ SPECIAL = {
     "ny attorney general": ("channel", "public_sector", "covered by public_sector (ag.ny.gov refuses this client; statejobs.ny.gov mirrors the postings)"),
     "federal reserve bank of new york": ("channel", "public_sector", "covered by the public_sector discovery channel"),
     "finra": ("channel", "public_sector", "covered by the public_sector discovery channel"),
+    "parabellum capital": ("none", "", "no public job board (site checked 2026-09-27); web-search queries and team-page watch"),
+    "elliott management": ("none", "", "no public job board (checked 2026-09-27); web-search queries only"),
     "sec": ("channel", "official_apis", "USAJobs (needs an API key)"),
     "cftc": ("channel", "official_apis", "USAJobs (needs an API key)"),
     "occ": ("channel", "official_apis", "USAJobs (needs an API key)"),
@@ -114,10 +116,16 @@ def _name_matches(company: str, board_label: str) -> bool:
     return bool(a and b) and (a in b or b in a or a[:6] == b[:6])
 
 
+# names a web search showed belonging to unrelated employers too (2026-09-27: a cybersecurity firm, a children's
+# museum, a machinery maker, a parcel carrier), plus one-word names that are ordinary words
+KNOWN_COLLISIONS = {"parabellum", "longford", "harbour", "therium", "surge", "figure", "circle", "gemini", "virtu"}
+
+
 def _generic_name(company: str) -> bool:
-    """Short or one-word names ('LCM', 'GLS', 'Parabellum') collide with other employers' board slugs."""
-    words = re.findall(r"[a-z0-9]+", re.sub(r"\(.*?\)", "", company).lower())
-    return len(norm_company(company)) <= 6 or len(words) <= 1
+    """Very short names ('LCM', 'GLS', 'ICE') and known collisions collide with other employers' board slugs.
+    Distinctive one-word names (EvenUp, Spellbook, Klarna) stay guessable."""
+    n = norm_company(company)
+    return len(n) <= 5 or n in KNOWN_COLLISIONS
 
 
 def _careers_label(url: str) -> str:
