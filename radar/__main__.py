@@ -95,14 +95,21 @@ def main(argv: list[str] | None = None) -> int:
         from .leads import add_leads
         from .models import Lead
 
+        from pydantic import ValidationError
+
         leads = []
         with open(args.file, encoding="utf-8") as f:
-            for line in f:
+            for n, line in enumerate(f, 1):
                 if line.strip():
-                    d = json.loads(line)
-                    if args.source:
-                        d["source"] = args.source
-                    leads.append(Lead(**{k: v for k, v in d.items() if k in Lead.model_fields}))
+                    try:  # one bad row is skipped, not fatal to the whole import
+                        d = json.loads(line)
+                        if not isinstance(d, dict):
+                            raise ValueError("not a JSON object")
+                        if args.source:
+                            d["source"] = args.source
+                        leads.append(Lead(**{k: v for k, v in d.items() if k in Lead.model_fields}))
+                    except (ValueError, TypeError, ValidationError) as e:
+                        print(f"warning: {args.file}:{n}: skipped malformed lead: {e}", file=sys.stderr)
         print(f"added {add_leads(leads)} of {len(leads)} leads")
     return 0
 

@@ -97,6 +97,13 @@ def pay_from_text(text: str) -> Pay:
     for m in _SINGLE.finditer(text):
         v = _to_num(m.group(1), m.group(2))
         before = text[max(0, m.start() - 70) : m.start()]
+        near = text[m.end() : m.end() + 20]
+        # "$60 per hour" / "$9,500 per month": a small figure is pay when the period marker follows it
+        if _HOURLY.search(near) and 10 <= v <= 2000:
+            return Pay(v, v, "hourly", "hour", "USD", "regex:single", pay_extras(text))
+        if _MONTHLY.search(near) and 1_000 <= v <= 100_000:
+            ptype = "OTE" if _OTE.search(before) else "base"
+            return Pay(v, v, ptype, "month", "USD", "regex:single", pay_extras(text))
         if re.search(r"salary|base|compensation|pay", before, re.I) and 20_000 <= v <= 5_000_000:
             ptype = "OTE" if _OTE.search(before) else "base"
             return Pay(v, v, ptype, "year", "USD", "regex:single", pay_extras(text))
@@ -165,6 +172,15 @@ def years_mentions(text: str) -> list[YearsMention]:
             continue
         if lo > 25:
             continue
+        # "In our 20 years of experience advising...", "Over 10 years, the firm has grown..." describe the employer
+        if re.search(r"\b(for|in|over|across|during)\s+(our|its|their|the)\s*$", before, re.I):
+            continue
+        if re.search(r"\b(has|have|had)\s+(grown|operated|been operating|served|advised)|\b(combined|collective) experience",
+                     after[:50], re.I):
+            continue
+        if re.match(r"\s*,\s*(?:(?i:the (?:firm|company|team|fund|group|business|platform)|our|we|it|they)\b"
+                    r"|[A-Z][\w&.-]*(?:\s+[A-Z][\w&.-]*)*\s+(?:has|have|is|was)\b)", after):
+            continue
         # "at least 18 years of age" and "for over 25 years, Axiom has ..." are not experience asks
         if re.match(r"\s*(of age|old|or older)\b", after, re.I) or re.search(r"\bfor (over|more than|nearly|almost)\s*$", before, re.I):
             continue
@@ -232,7 +248,7 @@ US_CITIES = (
     "honolulu|anchorage|bethesda|rockville|silver spring|alexandria|plano|irving|fort worth|san antonio"
 )
 _NYC = re.compile(
-    r"\bnew york(,?\s*(ny|new york|city|n\.y\.))?\b|\bnyc\b|\bmanhattan\b|\bbrooklyn\b|\bqueens\b|\bbronx\b|\bstaten island\b",
+    r"\bnew york(,?\s*(ny|new york|city|n\.y\.))?\b|\bnyc\b|\bmanhattan\b(?!\s+beach)|\bbrooklyn\b|\bqueens\b|\bbronx\b|\bstaten island\b",
     re.I,
 )
 _NY_UPSTATE = re.compile(
@@ -283,7 +299,10 @@ def classify_location(loc: str, *, remote_flag: bool | None = None, country: str
         return "unknown"
     is_remote = bool(_REMOTE.search(s)) or bool(remote_flag)
     non_us = bool(_NON_US.search(s)) or bool(country and not re.match(r"^(US|USA|United States)", country, re.I))
-    if _NYC.search(s) and not _NY_UPSTATE.search(s) and not re.search(r"new york state", s, re.I):
+    st = _STATE_ABBR.search(s)
+    # "Manhattan, KS" / "Brooklyn Park, MN": a borough name with an explicit non-NY state is not NYC
+    borough_elsewhere = bool(st and st.group(1) != "NY" and not re.search(r"\bnew york\b|\bnyc\b", s, re.I))
+    if _NYC.search(s) and not borough_elsewhere and not _NY_UPSTATE.search(s) and not re.search(r"new york state", s, re.I):
         return "nyc"
     if _NYC_COMMUTABLE.search(s) and not (non_us and not _US_MARK.search(s)):
         return "nyc_commutable"

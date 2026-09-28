@@ -143,6 +143,7 @@ def build_posting(
         locations=locs,
         workplace=workplace or workplace_of(loc_join + " " + text[:600]),
         loc_bucket=best_bucket(locs, remote_flag=remote_flag, country=country),
+        country=country,
         pay_min=p.min,
         pay_max=p.max,
         pay_type=p.type,

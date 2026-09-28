@@ -64,11 +64,25 @@ GOVERNMENT_NAME = re.compile(
     r"\bdepartment of\b|\boffice of the\b|attorney general|comptroller|\bstate of\b|\bcity of\b|\bcounty\b|"
     r"\bNYS\b|new york state|\bU\.?S\.? (securities|department|attorney)|\bsecurities and exchange commission\b|"
     r"\bcommodity futures trading commission\b|\bFDIC\b|comptroller of the currency|\bCFPB\b|consumer financial protection bureau|"
-    r"\bFinCEN\b|district attorney|public defender|\bcourts?\b.*\b(unified|judiciary)\b",
+    r"\bFinCEN\b|district attorney|public defender|\bcourts?\b.*\b(unified|judiciary)\b|"
+    r"\blaw department\b|\bcorporation counsel\b|\bnew york city\b.*\b(department|office|agency|commission)\b",
     re.I,
 )
 QUASI_PUBLIC_OK = ("public_sector:finra", "public_sector:ny_fed")  # SRO and the NY Fed pay private-sector ranges; the pay floor decides
 PAY_FLOOR = 150_000
+ANNUALIZE = {"hour": 2080, "month": 12}  # monthly and hourly figures are compared to the floor as annual pay
+FUND_LIKE = re.compile(r"capital|funding|partners|assets|finance", re.I)
+# "Unlike firm roles, we do not track billable hours", "not a contract position": a negated mention is not the thing
+NEGATION = re.compile(r"\b(not|no|never|without|unlike|don[’']t|doesn[’']t)\b|\bnon-", re.I)
+
+
+def affirmed(rx: re.Pattern, text: str) -> re.Match | None:
+    """First match of rx not negated within ~30 characters before it in the same sentence."""
+    for m in rx.finditer(text or ""):
+        pre = re.split(r"[.;!?\n]", text[max(0, m.start() - 30) : m.start()])[-1]
+        if not NEGATION.search(pre):
+            return m
+    return None
 CONTRACT_PLATFORM = re.compile(r"^axiom\b|talent platform", re.I)  # Axiom places lawyers on engagements
 NOT_A_SEAT = re.compile(r"coffee chat|case competition|talent (network|community|pool)|expression of interest|"
                         r"general interest|future opportunit|open application", re.I)
@@ -82,7 +96,14 @@ def is_government(p: Posting) -> bool:
 
 
 def is_law_firm(p: Posting) -> bool:
-    return bool(LAW_FIRM_NAME.search(p.company or "") or LAW_FIRM_TEXT.search(p.description or ""))
+    return bool(LAW_FIRM_NAME.search(p.company or "") or affirmed(LAW_FIRM_TEXT, p.description or ""))
+
+
+def law_firm_title_carveout(p: Posting) -> bool:
+    """An underwriting/research/analyst title at an LLP-named fund ("Longford Capital Fund LLP") is not a law-firm seat.
+    Only a name-only firm signal on a fund-like name qualifies; billable-hours text in the posting means a real firm."""
+    return bool(re.search(r"underwrit|research|analyst", p.title, re.I) and LAW_FIRM_NAME.search(p.company or "")
+                and FUND_LIKE.search(p.company or "") and not affirmed(LAW_FIRM_TEXT, p.description or ""))
 
 
 def desc_hash(p: Posting) -> str:
@@ -207,7 +228,8 @@ def score(p: Posting) -> Posting:
         sig.append("credit/distressed/bankruptcy subject")
     if RX["fintech"].search(both):
         sig.append("fintech/crypto/AI/market-structure subject")
-    if p.pay_type == "base" and p.pay_min and ((p.pay_min + (p.pay_max or p.pay_min)) / 2) >= 150_000:
+    per = ANNUALIZE.get(p.pay_period or "year", 1)
+    if p.pay_type == "base" and p.pay_min and ((p.pay_min + (p.pay_max or p.pay_min)) / 2) * per >= 150_000:
         sig.append("base pay midpoint ≥ $150K")
     if p.years_required is not None and 2 <= p.years_required <= 5:
         sig.append(f"{p.years_required} years required (2–5 band)")
@@ -216,12 +238,13 @@ def score(p: Posting) -> Posting:
     # employer-level and pay reasons first: they settle the row whatever else the posting says
     if is_government(p):
         poor.append("Government seat (pay ceiling below his target)")
-    elif is_law_firm(p) and LAW_FIRM_NONBILLABLE_TITLE.search(title):
-        poor.append(f"{LAW_FIRM_NONBILLABLE_REASON}: still a law firm, but no billable hours or court time")
-    elif is_law_firm(p) and not re.search(r"underwrit|research|analyst", title, re.I):
-        poor.append("Law-firm seat (lifestyle)")
+    elif is_law_firm(p) and not law_firm_title_carveout(p):
+        if LAW_FIRM_NONBILLABLE_TITLE.search(title):
+            poor.append(f"{LAW_FIRM_NONBILLABLE_REASON}: still a law firm, but no billable hours or court time")
+        else:
+            poor.append("Law-firm seat (lifestyle)")
     top = p.pay_max or p.pay_min
-    if p.pay_type == "base" and top and (p.pay_period or "year") in ("year", "annual", "") and top < PAY_FLOOR:
+    if p.pay_type == "base" and top and (p.pay_period or "year") in ("year", "annual", "", "month", "hour") and top * per < PAY_FLOOR:
         poor.append(f"Listed pay tops out below $150K ({p.pay_display})")
     floor = (j or {}).get("meets_floor")
     fy = (j or {}).get("domain_floor_years")
@@ -244,7 +267,7 @@ def score(p: Posting) -> Posting:
         poor.append("Contract-lawyer platform (engagements, not an employee seat)")
     if NOT_A_SEAT.search(title):
         poor.append("Event, talent pool or open application, not a seat")
-    if p.pay_type == "hourly" or EXCL["contract"].search(title + " " + text[:1500]):
+    if p.pay_type == "hourly" or affirmed(EXCL["contract"], title + " " + text[:1500]):
         poor.append("Contract, hourly or part-time engagement" + (f" ({p.pay_display})" if p.pay_type == "hourly" else ""))
 
     p.fit_signals = sig
