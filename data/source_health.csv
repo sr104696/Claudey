@@ -159,14 +159,14 @@ run,source,kind,status,queried,candidates,verified,kept
 2026-09-25,board:DISCO,board,ok,1,34,,0
 2026-09-25,board:Clio,board,ok,1,131,,0
 2026-09-28,phase1:seed-verify,channel,ok,33,33,20,
-2026-09-28,discover:websearch,channel,ok,37,78,15,15
-2026-09-28,discover:feeds,channel,ok,1,21,21,13
+2026-09-28,discover:websearch,channel,ok,37,79,15,15
 2026-09-28,discover:hn,channel,ok,4,0,,
+2026-09-28,discover:feeds,channel,failures,5,21,18,10
 2026-09-28,discover:public_sector,channel,ok,11,20,20,20
 2026-09-28,discover:official_apis,channel,ok,46,108,3,3
-2026-09-28,discover:wayback,channel,failures,260,0,,
-2026-09-28,discover:commoncrawl,channel,failures,3028,861,840,688
-2026-09-28,phase2:boards,channel,ok,672,1836,1837,1574
+2026-09-28,discover:wayback,channel,ok,260,0,,
+2026-09-28,phase2:boards,channel,ok,670,1842,1842,1580
+2026-09-28,discover:commoncrawl,channel,ok,0,1696,1582,1306
 2026-09-28,board:Burford Capital,board,ok,1,2,,2
 2026-09-28,board:Omni Bridgeway,board,ok,1,6,,2
 2026-09-28,board:Legalist,board,ok,1,5,,0
@@ -175,11 +175,12 @@ run,source,kind,status,queried,candidates,verified,kept
 2026-09-28,board:Debtwire (ION Analytics),board,ok,1,89,,2
 2026-09-28,board:Fitch Group (LevFin Insights / CreditSights),board,ok,1,55,,41
 2026-09-28,board:PitchBook (LCD),board,ok,1,23,,0
-2026-09-28,board:S&P Global,board,ok,1,275,,2
+2026-09-28,board:S&P Global,board,ok,1,274,,2
 2026-09-28,board:Capstone DC,board,ok,1,15,,6
+2026-09-28,board:MLex,board,ok,1,779,,6
 2026-09-28,board:Point72,board,ok,1,16,,8
 2026-09-28,board:Bridgewater Associates,board,ok,1,15,,1
-2026-09-28,board:Jane Street,board,ok,1,228,,6
+2026-09-28,board:Jane Street,board,ok,1,230,,6
 2026-09-28,board:Apollo,board,ok,1,68,,0
 2026-09-28,board:Ares,board,ok,1,268,,3
 2026-09-28,board:Oaktree,board,ok,1,12,,0
@@ -198,13 +199,13 @@ run,source,kind,status,queried,candidates,verified,kept
 2026-09-28,board:Hebbia,board,ok,1,20,,1
 2026-09-28,board:Eudia,board,ok,1,19,,3
 2026-09-28,board:Crosby,board,ok,1,18,,1
-2026-09-28,board:Thomson Reuters (CoCounsel),board,ok,1,458,,5
+2026-09-28,board:Thomson Reuters (CoCounsel),board,ok,1,455,,5
 2026-09-28,board:OpenAI,board,ok,1,829,,12
 2026-09-28,board:Anthropic,board,ok,1,618,,26
 2026-09-28,board:Mercor,board,ok,1,114,,0
 2026-09-28,board:Scale AI,board,ok,1,203,,4
 2026-09-28,board:Handshake AI,board,ok,1,5,,0
-2026-09-28,board:Snorkel,board,ok,1,38,,2
+2026-09-28,board:Snorkel,board,ok,1,37,,2
 2026-09-28,board:AlphaSense,board,ok,1,203,,1
 2026-09-28,board:Third Bridge,board,ok,1,129,,0
 2026-09-28,board:AlphaSights,board,ok,1,59,,1
@@ -229,7 +230,7 @@ run,source,kind,status,queried,candidates,verified,kept
 2026-09-28,board:CME,board,ok,1,46,,1
 2026-09-28,board:Nasdaq,board,ok,1,175,,4
 2026-09-28,board:Cboe,board,ok,1,85,,4
-2026-09-28,board:Mastercard,board,ok,1,1046,,8
+2026-09-28,board:Mastercard,board,ok,1,1044,,8
 2026-09-28,board:Morgan Stanley,board,ok,1,1345,,20
 2026-09-28,board:Citi,board,ok,1,2000,,17
 2026-09-28,board:Tower Research Capital,board,ok,1,91,,0
