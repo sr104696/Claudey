@@ -115,8 +115,15 @@ def run() -> dict:
                 leads += ls
             return leads, len(todo), len(due) - len(todo)
 
+    def safe_sweep(ats: str) -> tuple[list, int, int]:
+        try:
+            return sweep(ats)
+        except Exception as e:  # one ATS's failure must not lose the others' leads
+            failures.append(f"sweep {ats} failed: {type(e).__name__}: {e}")
+            return [], 0, 0
+
     with ThreadPoolExecutor(3) as ex:
-        res = dict(zip(PATTERNS, ex.map(sweep, PATTERNS)))
+        res = dict(zip(PATTERNS, ex.map(safe_sweep, PATTERNS)))
     STATE.write_text(json.dumps(state, indent=0), encoding="utf-8")
 
     rows = [{"ats": a, "board": t, "company": v.get("company", t), "relevant_hits": v["relevant"], "jobs": v["jobs"],
@@ -134,6 +141,7 @@ def run() -> dict:
     record_channel("discover:commoncrawl", queried=queried + checked, candidates=written, failures=failures,
                    notes=f"user-approved robots exemption for index.commoncrawl.org; tokens found "
                          f"{ {a: len(t) for a, t in fresh.items()} }; boards checked {checked}; pending {pending}; "
-                         f"boards with hits {len(rows)}")
+                         f"boards with hits {len(rows)}"
+                         + (f"; sweeps failed: {[f for f in failures if f.startswith('sweep ')]}" if any(f.startswith("sweep ") for f in failures) else ""))
     return {"tokens": {a: len(t) for a, t in fresh.items()}, "checked": checked, "pending": pending,
             "boards_with_hits": len(rows), "leads": written, "failures": failures[:10]}

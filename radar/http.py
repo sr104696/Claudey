@@ -139,7 +139,7 @@ class _HostGate:
                         continue
                 except (FileNotFoundError, PermissionError):
                     pass
-                time.sleep(0.05 + random.random() * 0.05)
+                time.sleep(0.2 + random.random() * 0.3)
             except PermissionError:  # Windows: file being deleted by another process
                 time.sleep(0.05)
         try:
@@ -383,17 +383,18 @@ class PoliteClient:
 
     def _one(self, method, url, body, hdrs, use_cache, check_robots) -> Result:
         host = urlsplit(url).netloc.lower()
-        if host in self._blocked_hosts:
-            res = Result(url=url, method=method, blocked="host-blocked", error=self._blocked_hosts[host])
-            self._log(res)
-            return res
-
+        # cache first: a response cached before the host was blocked mid-run is still good evidence
         cpath = self._cache_path(method, url, body)
         if use_cache is not False:
             cached = self._cache_get(cpath)
             if cached:
                 self._log(cached)
                 return cached
+
+        if host in self._blocked_hosts:
+            res = Result(url=url, method=method, blocked="host-blocked", error=self._blocked_hosts[host])
+            self._log(res)
+            return res
 
         if check_robots and host not in config.ROBOTS_EXEMPT_HOSTS:
             rules = self.robots_for(url)

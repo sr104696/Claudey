@@ -8,11 +8,12 @@ from dataclasses import asdict, dataclass
 
 from . import config, db
 from .ats import ashby, greenhouse, lever
+from .extract import IN_AREA
 from .http import channel
 from .models import Posting
 from .runlog import record_channel
 from .seeds import SeedRow, load_watchlist, parse_current_list
-from .textutil import norm_title
+from .textutil import norm_company, norm_title
 from .verify import find_repost, is_aggregator, search_board, verify_url
 
 
@@ -63,7 +64,7 @@ def _compare(row: SeedRow, p: Posting) -> str:
             notes.append(f"pay now listed: {p.pay_display}")
     elif seed_nums:
         notes.append(f"posting shows no pay figure (seed had {row.pay})")
-    if p.loc_bucket not in ("nyc", "us_remote"):
+    if p.loc_bucket not in IN_AREA:
         notes.append(f"location is {p.location or 'unspecified'} ({p.loc_bucket.replace('_', ' ')}): belongs in the outside-NYC section")
     notes.extend(_stale_close(p))
     return "; ".join(notes)
@@ -85,13 +86,21 @@ def _board_of(url: str) -> tuple[str, str] | None:
     return None
 
 
+def _resolve_entry(watch, company: str):
+    """The watchlist 'resolve' row for this employer: exact normalized-name match ('Citi' must not claim
+    'Citadel'), the longest name first when several match."""
+    key = norm_company(company)
+    hits = [w for w in watch if w.kind == "resolve" and key and norm_company(w.company) == key]
+    return max(hits, key=lambda w: len(w.company), default=None)
+
+
 def verify_seeds() -> tuple[list[SeedResult], list[ClosedResult]]:
     rows, closed = parse_current_list()
     watch = load_watchlist()
     results: list[SeedResult] = []
     with channel("phase1:seed-open"):
         for row in rows:
-            resolve = next((w for w in watch if w.kind == "resolve" and w.company.lower() in row.company.lower()), None)
+            resolve = _resolve_entry(watch, row.company)
             res: SeedResult
             if is_aggregator(row.url):
                 # seed rows sourced from aggregators: look for the employer's own posting first

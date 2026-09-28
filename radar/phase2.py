@@ -14,6 +14,7 @@ from urllib.parse import unquote
 
 from . import config, db
 from .ats import ashby, greenhouse, html as htmlats, lever, smallats, workday
+from .extract import IN_AREA
 from .http import channel, client, current_channel
 from .keywords import relevance
 from .models import Posting
@@ -23,7 +24,7 @@ from .verify import point72_title, point72_urls, verify_url
 
 FIELDS = ["company", "segment", "careers_url", "ats_hint", "ats_slug_or_tenant", "confidence", "notes",
           "ats", "slug", "board_status", "jobs_total", "jobs_relevant_us", "last_checked", "detect_note"]
-KEEP = ("nyc", "us_remote", "us_other")
+KEEP = IN_AREA + ("us_other",)
 
 # employers whose postings come through another channel or can't be read
 SPECIAL = {
@@ -113,6 +114,18 @@ def _name_matches(company: str, board_label: str) -> bool:
     return bool(a and b) and (a in b or b in a or a[:6] == b[:6])
 
 
+def _generic_name(company: str) -> bool:
+    """Short or one-word names ('LCM', 'GLS', 'Parabellum') collide with other employers' board slugs."""
+    words = re.findall(r"[a-z0-9]+", re.sub(r"\(.*?\)", "", company).lower())
+    return len(norm_company(company)) <= 6 or len(words) <= 1
+
+
+def _careers_label(url: str) -> str:
+    """'https://www.parabellumcap.com/careers' -> 'parabellumcap' (the employer's own domain label)."""
+    host = re.sub(r"^www\.|^careers\.|^jobs\.", "", re.sub(r"https?://", "", url or "").split("/")[0].lower())
+    return host.split(".")[0] if host else ""
+
+
 def _scan_careers(url: str) -> tuple[str, str] | None:
     if not url:
         return None
@@ -130,6 +143,7 @@ def _scan_careers(url: str) -> tuple[str, str] | None:
 
 
 def detect(row: dict) -> tuple[str, str, str]:
+    smallats.wk_reset_limited()
     key = row["company"].lower()
     for name, (ats, slug, note) in SPECIAL.items():
         if key == name or key.startswith(name + " "):
@@ -156,22 +170,36 @@ def detect(row: dict) -> tuple[str, str, str]:
     found = _scan_careers(row.get("careers_url", ""))
     if found:
         return found[0], found[1], f"linked from {row['careers_url']}"
+    # name-collision guard: a short or one-word name ('LCM') may be someone else's board. Greenhouse must report
+    # exactly this employer's name; the other ATSs report no name, so only a slug equal to the employer's own
+    # careers-site domain label is probed for them.
+    generic = _generic_name(row["company"])
+    own_label = _careers_label(row.get("careers_url", ""))
+    guarded: list[str] = []
     for slug in _slug_guesses(row["company"], row.get("careers_url", "")):
         for ats, probe in PROBES:
+            if generic and ats != "greenhouse" and slug != own_label:
+                guarded.append(f"{ats}:{slug}")
+                continue
             ok, n = probe(slug)
             if not ok or n == 0:
                 continue
             label = greenhouse.board_name(slug) if ats == "greenhouse" else slug
             norm = re.sub(r"[^a-z0-9]", "", re.sub(r"\(.*?\)", "", row["company"]).lower())
             full = slug in (norm, "-".join(re.findall(r"[a-z0-9]+", row["company"].lower())))
-            if ats == "greenhouse" and not _name_matches(row["company"], label):
+            if ats == "greenhouse" and not (_name_matches(row["company"], label) and
+                                            (not generic or norm_company(row["company"]) == norm_company(label or ""))):
+                if generic and label:
+                    guarded.append(f"greenhouse:{slug} (board '{label}')")
                 continue
             if ats != "greenhouse" and not full:
                 continue
             return ats, slug, f"probe hit ({n} jobs; board '{label}')"
-    if smallats.wk_rate_limited:
-        return "none", "", "no careers link to a known ATS and no probe hit (greenhouse, lever, ashby, recruitee, bamboohr); workable not checked (HTTP 429 this run, retried next run); smartrecruiters API is robots-blocked"
-    return "none", "", "no careers link to a known ATS and no probe hit (greenhouse, lever, ashby, workable, recruitee, bamboohr; smartrecruiters API is robots-blocked)"
+    guard_note = (f"; name-collision guard (short/one-word name) skipped slug guesses {', '.join(guarded[:6])}"
+                  + (f" +{len(guarded) - 6} more" if len(guarded) > 6 else "")) if guarded else ""
+    if smallats.wk_limited_since_reset():
+        return "none", "", "no careers link to a known ATS and no probe hit (greenhouse, lever, ashby, recruitee, bamboohr); workable not checked (HTTP 429 cooldown, retried next run); smartrecruiters API is robots-blocked" + guard_note
+    return "none", "", "no careers link to a known ATS and no probe hit (greenhouse, lever, ashby, workable, recruitee, bamboohr; smartrecruiters API is robots-blocked)" + guard_note
 
 
 # -------------------------------------------------------------------------- pulls
