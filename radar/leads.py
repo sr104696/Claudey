@@ -1,6 +1,7 @@
 """data/leads.jsonl: candidates from discovery channels, appended safely by parallel processes."""
 from __future__ import annotations
 
+import datetime as dt
 import json
 import time
 from pathlib import Path
@@ -46,3 +47,18 @@ def read_leads(path: Path = config.LEADS_PATH, run: str | None = None) -> list[d
             if run is None or d.get("run") == run:
                 out.append(d)
     return out
+
+
+def read_recent_leads(today: str, days: int = 7, path: Path = config.LEADS_PATH) -> list[dict]:
+    """Leads recorded by runs in the `days` days ending `today` (inclusive), one per URL; the newest record wins.
+    A lead found on Monday whose verification failed transiently is retried through the week."""
+    cutoff = (dt.date.fromisoformat(today) - dt.timedelta(days=days - 1)).isoformat()
+    by_url: dict[str, dict] = {}
+    for d in read_leads(path):
+        run = str(d.get("run") or "")
+        if not (cutoff <= run <= today) or not d.get("url"):
+            continue
+        prev = by_url.get(d["url"])
+        if prev is None or (run, d.get("found_at") or "") >= (str(prev.get("run")), prev.get("found_at") or ""):
+            by_url[d["url"]] = d
+    return list(by_url.values())

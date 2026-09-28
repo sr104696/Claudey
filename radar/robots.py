@@ -50,7 +50,8 @@ def _match(pattern: str, path: str) -> bool:
     if rx is None:
         anchored = pattern.endswith("$")
         body = pattern[:-1] if anchored else pattern
-        rx = re.compile("".join(".*" if c == "*" else re.escape(c) for c in unquote(body)) + ("$" if anchored else ""))
+        # split on the literal '*' first: a percent-encoded %2A is a literal asterisk, not a wildcard
+        rx = re.compile(".*".join(re.escape(unquote(seg)) for seg in body.split("*")) + ("$" if anchored else ""))
         _pat_cache[pattern] = rx
     return rx.match(path) is not None
 

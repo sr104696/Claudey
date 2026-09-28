@@ -6,8 +6,10 @@ import datetime as dt
 import json
 
 from . import config
+from .extract import is_metro_north
 from .models import Posting
 from .phase1 import ap_date
+from .score import LAW_FIRM_NONBILLABLE_REASON
 from .seeds import parse_current_list
 from .textutil import norm_company, norm_title
 
@@ -19,8 +21,26 @@ CSV_FIELDS = ["bucket", "is_new", "fit_score", "company", "title", "url", "locat
               "via_aggregator", "pipeline", "sources", "ats", "board", "job_id", "key"]
 
 
-def _match_key(company: str, title: str) -> str:
-    return f"{norm_company(company)[:8]}|{norm_title(title)}"
+def _match_key(ats=None, board=None, job_id=None, url=None, company: str = "", title: str = "") -> str:
+    """Identity of one req across runs: the ATS job id when there is one, else the URL, else company + title.
+    (A truncated company + title key merged two same-title reqs on one board into one row.)"""
+    if ats and job_id:
+        return f"{ats}:{board or ''}:{job_id}"
+    if url:
+        return url
+    return f"{norm_company(company)}|{norm_title(title)}"
+
+
+def _row_key(r: dict) -> str:
+    return _match_key(r.get("ats"), r.get("board"), r.get("job_id"), r.get("url"), r.get("company") or "", r.get("title") or "")
+
+
+def _post_key(p: Posting) -> str:
+    return _match_key(p.ats, p.board, p.job_id, p.url, p.company, p.title)
+
+
+def _name_key(company: str, title: str) -> str:
+    return f"{norm_company(company)}|{norm_title(title)}"
 
 
 def previous_rows(run: str) -> tuple[str, list[dict]]:
@@ -44,7 +64,20 @@ def _loc(p: Posting) -> str:
     s = "; ".join(locs[:3]) + (f" (+{len(locs) - 3} more)" if len(locs) > 3 else "")
     if p.workplace and p.workplace not in s.lower():
         s += f", {p.workplace}"
-    return s or "Not stated"
+    s = s or "Not stated"
+    if p.loc_bucket == "nyc_commutable":
+        s += " (commutable)"
+    elif p.loc_bucket not in ("nyc", "us_remote") and is_metro_north(locs):
+        s += " (Metro-North ~1 hr, hybrid only)"
+    return s
+
+
+def _date_desc(d: str | None) -> int:
+    """Sort key for fresher-first: negative ordinal, undated rows last."""
+    try:
+        return -dt.date.fromisoformat((d or "")[:10]).toordinal()
+    except ValueError:
+        return 0
 
 
 def _position(p: Posting, new: bool) -> str:
@@ -68,11 +101,11 @@ def is_thesis(p: Posting) -> bool:
 
 def fit_order(p: Posting):
     """One table, most promising first: seat families that loosen the domain-years screen, then rows whose
-    domain floor he meets, then listed pay ($200K+ first, per Seth), then rubric signals."""
+    domain floor he meets, then listed pay ($200K+ first, per Seth), then rubric signals, then fresher postings."""
     top = p.pay_max or p.pay_min or 0
     mid = ((p.pay_min or top) + top) / 2 if top else 0
     tier = 2 if mid >= 200_000 else 1 if mid >= 150_000 else 0
-    return (not is_thesis(p), "(meets: Y)" not in (p.domain_floor or ""), -tier, -p.fit_score, -top, p.company)
+    return (not is_thesis(p), "(meets: Y)" not in (p.domain_floor or ""), -tier, -p.fit_score, -top, _date_desc(p.posted_date), p.company)
 
 
 NEAR_MISS_MAX = 12
@@ -82,7 +115,9 @@ _SETTLED = ("Government seat", "Law-firm seat", "Law-firm associate seat", "List
 def near_misses(posts: list[Posting]) -> list[Posting]:
     """Poor-match rows closest to the line: soft reasons with 4+ signals, or pattern excludes on 5+ signals."""
     def close(p: Posting) -> bool:
-        if p.bucket != "poor" or any(s in p.poor_reason for s in _SETTLED):
+        # the non-billable law-firm reason starts "Law-firm seat" too, but it is reviewable, not settled
+        reason = p.poor_reason.replace(LAW_FIRM_NONBILLABLE_REASON, "")
+        if p.bucket != "poor" or any(s in reason for s in _SETTLED):
             return False
         return (not p.hard_exclude_reason and p.fit_score >= 4) or p.fit_score >= 5
     return sorted([p for p in posts if close(p)], key=lambda p: (-p.fit_score, -(p.pay_max or p.pay_min or 0), p.company))[:NEAR_MISS_MAX]
@@ -104,17 +139,37 @@ def write_near_miss(posts: list[Posting], today: dt.date) -> str:
 def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     run = config.today()
     base_label, prev = previous_rows(run)
-    prev_by_url = {r["url"]: r for r in prev}
-    prev_by_key = {_match_key(r["company"], r["title"]): r for r in prev}
+    # key -> every prior row with it, so a collision can't silently drop a row from the diff
+    prev_by_url: dict[str, list[dict]] = {}
+    prev_by_key: dict[str, list[dict]] = {}
+    prev_by_name: dict[str, list[dict]] = {}  # rows without a job id (seed list, page postings)
+    for r in prev:
+        if r.get("url"):
+            prev_by_url.setdefault(r["url"], []).append(r)
+        prev_by_key.setdefault(_row_key(r), []).append(r)
+        if not r.get("job_id"):
+            prev_by_name.setdefault(_name_key(r.get("company") or "", r.get("title") or ""), []).append(r)
 
     def prior(p: Posting) -> dict | None:
-        return prev_by_url.get(p.url) or prev_by_key.get(_match_key(p.company, p.title))
+        hit = prev_by_url.get(p.url) or prev_by_key.get(_post_key(p))
+        if not hit:
+            # a seed-list or page row matches by name only when that name is unambiguous on both sides
+            hit = prev_by_name.get(_name_key(p.company, p.title))
+            if hit and (len(hit) > 1 or name_count.get(_name_key(p.company, p.title), 0) > 1):
+                hit = None
+        return hit[0] if hit else None
+
+    name_count: dict[str, int] = {}
+    for p in posts:
+        name_count[_name_key(p.company, p.title)] = name_count.get(_name_key(p.company, p.title), 0) + 1
 
     new = {p.key: (prior(p) is None and not p.pipeline) for p in posts}
     order = lambda p: (-p.fit_score, -(p.pay_max or p.pay_min or 0), p.company)
     fit = sorted([p for p in posts if p.bucket == "fit"], key=fit_order)
     poor = sorted([p for p in posts if p.bucket == "poor"], key=order)
-    outside = sorted([p for p in posts if p.bucket == "outside" and not p.poor_reason], key=order)
+    # Metro-North towns (Stamford, Greenwich, ...) first: out of area, but reachable for a hybrid seat
+    outside = sorted([p for p in posts if p.bucket == "outside" and not p.poor_reason],
+                     key=lambda p: (not is_metro_north(p.locations or [p.location]),) + order(p))
     today = dt.date.today()
 
     L = ["# Open positions", "",
@@ -150,8 +205,9 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
             w.writerows(rows)
 
     # ------------------------------------------------------------------- diff
-    cur_keys = {_match_key(p.company, p.title) for p in posts} | {p.url for p in posts}
-    gone = [r for r in prev if r["url"] not in cur_keys and _match_key(r["company"], r["title"]) not in cur_keys]
+    cur_keys = {_post_key(p) for p in posts} | {p.url for p in posts}
+    matched = {id(r) for p in posts if (r := prior(p)) is not None}
+    gone = [r for r in prev if id(r) not in matched and _row_key(r) not in cur_keys and r.get("url") not in cur_keys]
     changes = []
     for p in posts:
         r = prior(p)

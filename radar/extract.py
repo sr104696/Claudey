@@ -241,6 +241,9 @@ _NY_UPSTATE = re.compile(
     r"poughkeepsie|valhalla|new york state)\b",
     re.I,
 )
+# PATH/ferry-commutable NJ towns count as NYC for the tables; Metro-North towns stay out of area but sort first there
+_NYC_COMMUTABLE = re.compile(r"\b(jersey city|hoboken)\b", re.I)
+_METRO_NORTH = re.compile(r"\b(stamford|greenwich|westport|rye|white plains)\b", re.I)
 _REMOTE = re.compile(r"\bremote\b|\banywhere\b|work from home|\bwfh\b|distributed|virtual", re.I)
 _US_MARK = re.compile(r"\bUS\b|\bU\.S\.|\bUSA\b|united states|north america|\bamericas\b|nationwide|us-based", re.I)
 NON_US = (
@@ -261,7 +264,13 @@ _US_CITY = re.compile(r"\b(" + US_CITIES + r"|dc|d\.c\.)(?![a-z])", re.I)
 _STATE_ABBR = re.compile(r"(?:,|\s)\s*(" + "|".join(US_STATES) + r")\b(?:\s*\d{5})?(?:\s*,?\s*(?:US|USA|United States))?\s*$")
 _STATE_NAME = re.compile(r"\b(" + "|".join(sorted(US_STATES.values(), key=len, reverse=True)) + r")\b", re.I)
 
-BUCKET_RANK = {"nyc": 0, "us_remote": 1, "us_other": 2, "unknown": 3, "non_us": 4}
+BUCKET_RANK = {"nyc": 0, "nyc_commutable": 1, "us_remote": 2, "us_other": 3, "unknown": 4, "non_us": 5}
+IN_AREA = ("nyc", "nyc_commutable", "us_remote")  # the main tables: NYC (incl. Jersey City / Hoboken) or US-remote
+
+
+def is_metro_north(locs: list[str]) -> bool:
+    """Stamford, Greenwich, Westport, Rye, White Plains: about an hour from NYC by Metro-North."""
+    return any(_METRO_NORTH.search(l or "") for l in locs)
 
 
 def classify_location(loc: str, *, remote_flag: bool | None = None, country: str | None = None) -> str:
@@ -276,6 +285,8 @@ def classify_location(loc: str, *, remote_flag: bool | None = None, country: str
     non_us = bool(_NON_US.search(s)) or bool(country and not re.match(r"^(US|USA|United States)", country, re.I))
     if _NYC.search(s) and not _NY_UPSTATE.search(s) and not re.search(r"new york state", s, re.I):
         return "nyc"
+    if _NYC_COMMUTABLE.search(s) and not (non_us and not _US_MARK.search(s)):
+        return "nyc_commutable"
     us = bool(_US_MARK.search(s) or _US_CITY.search(s) or _STATE_ABBR.search(s) or _STATE_NAME.search(s))
     if is_remote:
         if non_us and not _US_MARK.search(s):
@@ -292,7 +303,7 @@ def best_bucket(locs: list[str], *, remote_flag: bool | None = None, country: st
     parts = [x for l in locs if l for x in re.split(r"\s+or\s+|;|\s/\s", l) if x.strip()]
     buckets = [classify_location(l, remote_flag=remote_flag, country=country) for l in parts]
     # a bare "Remote" next to a non-US office is that country's remote, not US remote
-    if "non_us" in buckets and "nyc" not in buckets and "us_other" not in buckets:
+    if "non_us" in buckets and not {"nyc", "nyc_commutable", "us_other"} & set(buckets):
         buckets = [("non_us" if b == "us_remote" and not _US_MARK.search(p) else b) for b, p in zip(buckets, parts)]
     buckets = buckets or [
         classify_location("", remote_flag=remote_flag, country=country)
@@ -313,5 +324,5 @@ def workplace_of(text: str) -> str:
 
 __all__ = [
     "Pay", "pay_from_text", "pay_display", "pay_extras", "years_required", "years_mentions",
-    "jd_requirement", "classify_location", "best_bucket", "workplace_of", "snippet",
+    "jd_requirement", "classify_location", "best_bucket", "workplace_of", "snippet", "IN_AREA", "is_metro_north",
 ]

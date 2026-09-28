@@ -19,7 +19,7 @@ class Posting(BaseModel):
     location: str = ""
     locations: list[str] = Field(default_factory=list)
     workplace: str = ""  # remote | hybrid | onsite | ""
-    loc_bucket: str = "unknown"  # nyc | us_remote | us_other | non_us | unknown
+    loc_bucket: str = "unknown"  # nyc | nyc_commutable | us_remote | us_other | non_us | unknown
 
     pay_min: float | None = None
     pay_max: float | None = None
@@ -62,7 +62,7 @@ class Posting(BaseModel):
     def dedupe_key(self) -> str:
         from .textutil import norm_company, norm_title
 
-        area = "main" if self.loc_bucket in ("nyc", "us_remote") else self.loc_bucket
+        area = "main" if self.loc_bucket in ("nyc", "nyc_commutable", "us_remote") else self.loc_bucket
         return f"{norm_company(self.company)}|{norm_title(self.title)}|{area}"
 
 

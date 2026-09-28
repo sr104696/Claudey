@@ -4,25 +4,28 @@ from __future__ import annotations
 import csv
 import json
 import re
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 from . import config, db
+from . import score as score_mod
 from .ats import ashby, greenhouse, lever
 from .ats.base import build_posting
 from .ats.nyag import pdf_text
-from .extract import classify_location
+from .extract import IN_AREA, classify_location
 from .http import channel, client, current_channel
 from .keywords import relevance
-from .leads import read_leads
+from .leads import read_recent_leads
 from .models import Posting
 from .phase1 import same_role
 from .runlog import record_channel
-from .score import JUDGMENTS, _role_key, desc_hash, judgments, score
+from .score import JUDGMENTS, desc_hash, judgments, role_judgment, score
 from .textutil import html_to_text, jsonld_jobposting, norm_company
 from .verify import is_aggregator, verify_url
 
-KEEP = ("nyc", "us_remote", "us_other")
+KEEP = IN_AREA + ("us_other",)
+LEAD_WINDOW_DAYS = 7  # leads from the last week's runs are re-verified, not only today's
 PENDING = config.DATA / "judgments" / "pending"
 RESULTS = config.DATA / "judgments" / "results"
 
@@ -53,6 +56,25 @@ def _registry() -> dict[str, tuple[str, str]]:
             if r.get("ats") in ("greenhouse", "lever", "ashby") and r.get("slug"):
                 out[norm_company(r["company"])] = (r["ats"], r["slug"])
     return out
+
+
+def _segments() -> dict:
+    """Registry segment by (ats, slug) and by normalized company name, so lead-verified postings score like board pulls."""
+    out: dict = {}
+    with open(config.COMPANIES_CSV, newline="", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            if not r.get("segment"):
+                continue
+            if r.get("ats") and r.get("slug"):
+                out[(r["ats"], r["slug"])] = r["segment"]
+            if (k := norm_company(r["company"])):
+                out.setdefault(k, r["segment"])
+    return out
+
+
+def registry_segment(p: Posting, segs: dict, lead_company: str = "") -> str | None:
+    return (segs.get((p.ats, p.board)) or segs.get(norm_company(p.company or ""))
+            or (segs.get(norm_company(lead_company)) if lead_company else None))
 
 
 def _employer_board(company: str, reg: dict) -> tuple[str, str] | None:
@@ -123,12 +145,15 @@ def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
         for line in cb.read_text(encoding="utf-8").split("\n"):
             if line.strip():
                 posts.append(Posting.model_validate_json(line))
-            stats["boards"] += 1
+                stats["boards"] += 1
 
     if verify_leads:
         reg = _registry()
-        leads = read_leads(run=run)
+        segs = _segments()
+        leads = read_recent_leads(run, LEAD_WINDOW_DAYS)
         stats["leads"] = len(leads)
+        stats["leads_today"] = sum(1 for l in leads if l.get("run") == run)
+        stats["lead_window_days"] = LEAD_WINDOW_DAYS
         ch = current_channel()
 
         def one(lead):
@@ -145,6 +170,8 @@ def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
                 s["leads"] += 1
                 if st == "open" and p:
                     p.sources = sorted(set(p.sources) | {lead["source"]})
+                    if (seg := registry_segment(p, segs, lead.get("company") or "")):
+                        p.segment = seg
                     posts.append(p)
                     s["verified_open"] += 1
                     stats["leads_verified"] += 1
@@ -163,7 +190,7 @@ def gather(verify_leads: bool = True) -> tuple[list[Posting], dict]:
 
 
 def dedupe(posts: list[Posting]) -> list[Posting]:
-    rank = lambda p: (0 if "seed" in p.sources else 1, 0 if p.loc_bucket == "nyc" else 1, 0 if p.ats not in ("page", "jsonld", None) else 1,
+    rank = lambda p: (0 if "seed" in p.sources else 1, 0 if p.loc_bucket in ("nyc", "nyc_commutable") else 1, 0 if p.ats not in ("page", "jsonld", None) else 1,
                       1 if p.via_aggregator else 0, -len(p.description))
     """Merge copies of one req (same title, same text: Brex-style per-location reposts, seed page vs ATS API);
     keep distinct reqs that merely share a generic title ("Counsel" on two teams)."""
@@ -254,15 +281,18 @@ def export_judgments(posts: list[Posting], batch_size: int = 20) -> list[str]:
     near_miss = lambda p: p.bucket == "poor" and p.hard_exclude_reason and p.fit_score >= 4 and not judgments().get(p.key)
     need = [p for p in posts if (p.bucket == "fit" or (p.bucket == "outside" and not p.poor_reason) or near_miss(p))
             and not (p.key in cached and cached[p.key].get("desc_hash") == desc_hash(p))
-            and _role_key(p.company, p.title) not in cached]
+            and role_judgment(p) is None]
     files = []
     for i in range(0, len(need), batch_size):
         items = []
         for p in need[i:i + batch_size]:
             m = QUAL.search(p.description)
-            body = p.description[m.start() - 200 if m and m.start() > 200 else 0:][:3500]
+            body = p.description[m.start() - 200 if m and m.start() > 200 else 0:][:4000]
+            # everything a judge needs offline: identity, the hash that keys the result, and the posting text
             items.append({"key": p.key, "desc_hash": desc_hash(p), "company": p.company, "title": p.title,
-                          "location": p.location, "pay": p.pay_display, "url": p.url, "posting_excerpt": body})
+                          "url": p.url, "location": p.location, "loc_bucket": p.loc_bucket, "pay_display": p.pay_display,
+                          "pay": p.pay_display, "years_required": p.years_required, "jd_required": p.jd_required,
+                          "posting_excerpt": body})
         path = PENDING / f"batch_{i // batch_size + 1:02d}.json"
         path.write_text(json.dumps(items, indent=1, ensure_ascii=False), encoding="utf-8")
         files.append(str(path))
@@ -270,15 +300,24 @@ def export_judgments(posts: list[Posting], batch_size: int = 20) -> list[str]:
 
 
 def apply_judgments() -> int:
-    """Merge subagent results (data/judgments/results/*.json) into data/judgments.jsonl."""
+    """Merge subagent results (data/judgments/results/*.json) into data/judgments.jsonl.
+
+    A result whose desc_hash can't be determined (not in the result, not in a pending batch) is skipped with a
+    warning: without it the judgment can't be tied to the text that was judged, and would leak onto reposts."""
     n = 0
     hashes = {x["key"]: x["desc_hash"] for f in PENDING.glob("*.json") for x in json.loads(f.read_text(encoding="utf-8"))}
     with open(JUDGMENTS, "a", encoding="utf-8") as out:
         for f in sorted(RESULTS.glob("*.json")):
             for d in json.loads(f.read_text(encoding="utf-8")):
+                h = d.get("desc_hash") or hashes.get(d.get("key"))
+                if not d.get("key") or not h:
+                    print(f"warning: skipped judgment for {d.get('key')!r} in {f.name}: no desc_hash in the result "
+                          "or any pending batch", file=sys.stderr)
+                    continue
+                d["desc_hash"] = h
                 d["judged_on"] = config.today()
-                d.setdefault("desc_hash", hashes.get(d["key"]))
                 out.write(json.dumps(d, ensure_ascii=False) + "\n")
                 n += 1
             f.rename(f.with_suffix(".applied"))
+    score_mod._judg = None  # reload with the new rows on next use
     return n

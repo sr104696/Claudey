@@ -1,6 +1,9 @@
 """Workable, Recruitee, BambooHR and SmartRecruiters adapters (smaller employers)."""
 from __future__ import annotations
 
+import threading
+import time
+
 from ..http import client, probe_client
 from ..models import Posting
 from .base import build_posting, pay_from_range
@@ -38,21 +41,38 @@ def sr_pull(slug: str, company: str, source: str = "board:smartrecruiters") -> t
 
 # ------------------------------------------------------------------------ Workable
 WK = "https://apply.workable.com/api"
-# Workable answers bursts of account probes with 429. After the first one, stop probing it for the rest of
-# the run: a 429 means "not checked", not "no board", and phase2.detect() reports it that way.
-wk_rate_limited = False
+# Workable answers bursts of account probes with 429. After one, stop probing it for WK_COOLDOWN_S: a 429
+# means "not checked", not "no board", and phase2.detect() reports it that way (wk_limited_since_reset()).
+WK_COOLDOWN_S = 300
+_wk_429_until = 0.0
+_wk_tl = threading.local()  # per-thread: detect() runs in a pool and asks about its own probes only
+
+
+def wk_cooling_down() -> bool:
+    return time.time() < _wk_429_until
+
+
+def wk_reset_limited() -> None:
+    _wk_tl.limited = False
+
+
+def wk_limited_since_reset() -> bool:
+    """True when a Workable probe on this thread was skipped or refused (429) since wk_reset_limited()."""
+    return getattr(_wk_tl, "limited", False)
 
 
 def wk_probe(slug: str) -> tuple[bool, int]:
-    global wk_rate_limited
-    if wk_rate_limited:
+    global _wk_429_until
+    if wk_cooling_down():
+        _wk_tl.limited = True
         return False, -1
     r = probe_client().post_json(f"{WK}/v3/accounts/{slug}/jobs", {"query": "", "location": [], "department": [], "worktype": [], "remote": []})
     if r.ok:
         d = r.json()
         return True, d.get("total", len(d.get("results", [])))
     if r.status == 429 or "HTTP 429" in (r.error or ""):
-        wk_rate_limited = True
+        _wk_429_until = time.time() + WK_COOLDOWN_S
+        _wk_tl.limited = True
         return False, -1
     return False, 0
 
