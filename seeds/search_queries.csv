@@ -36,3 +36,4 @@ site:legal.io regulatory counsel New York fintech 2026,websearch:aggregator,ats-
 "KBRA OR ""DBRS Morningstar"" OR ""AM Best"" ""legal analyst"" OR ""surveillance analyst""",websearch,credit/distressed research,,0
 """claims trading"" analyst OR ""legal analyst"" bankruptcy claims",websearch,credit/distressed research,,0
 AlixPartners OR Ankura OR Stout restructuring analyst OR associate New York,websearch,credit/distressed research,,0
+"site:rlegaltech.com jobs OR careers legal technology counsel attorney",websearch:ats,legaltech,0,0

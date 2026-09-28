@@ -246,21 +246,26 @@ def score(p: Posting) -> Posting:
     top = p.pay_max or p.pay_min
     if p.pay_type == "base" and top and (p.pay_period or "year") in ("year", "annual", "", "month", "hour") and top * per < PAY_FLOOR:
         poor.append(f"Listed pay tops out below $150K ({p.pay_display})")
+    t_core = re.sub(r"\s*@.*$", "", title)  # "Counsel @ Riskified": the employer name isn't the practice area
+    # Seth, 2026-09-28: every in-house legal seat is in scope, long shots and off-interest practice areas
+    # included -- he applies to those anyway. Never poor-match a counsel/attorney/legal-titled seat for its
+    # practice area or an unmet domain-years floor; just rank it on fit signals like everything else. That
+    # screen still applies to the seats in the five non-legal seat families (credit risk manager, investment
+    # analyst program, litigation-finance underwriting, ...), where years in the named domain is the real ask.
+    inhouse_legal = bool(LAWYER_TITLE.search(t_core))
     floor = (j or {}).get("meets_floor")
     fy = (j or {}).get("domain_floor_years")
     dom = (j or {}).get("domain") or ""
-    if floor == "N" or (isinstance(fy, int) and fy >= 6):
-        poor.append((f"Asks for {fy}+ years of {dom}" if fy else f"Wants {dom} experience he doesn't have")
-                    + (f": {j['rationale']}" if j.get("rationale") else ""))
-    elif dom and OFF_TARGET_PRACTICE.search(dom) and not TARGET_PRACTICE.search(dom):
-        poor.append(f"Generalist or off-target practice seat (wants {dom})")
-    elif not j and p.years_required is not None and p.years_required >= 6:
-        poor.append(f"Asks for {p.years_required}+ years: “{p.years_text}”")
+    if not inhouse_legal:
+        if floor == "N" or (isinstance(fy, int) and fy >= 6):
+            poor.append((f"Asks for {fy}+ years of {dom}" if fy else f"Wants {dom} experience he doesn't have")
+                        + (f": {j['rationale']}" if j.get("rationale") else ""))
+        elif dom and OFF_TARGET_PRACTICE.search(dom) and not TARGET_PRACTICE.search(dom):
+            poor.append(f"Generalist or off-target practice seat (wants {dom})")
+        elif not j and p.years_required is not None and p.years_required >= 6:
+            poor.append(f"Asks for {p.years_required}+ years: “{p.years_text}”")
     if ym and max((y.hi or y.lo) for y in ym) <= 2 and p.years_required is not None and p.years_required <= 1:
         poor.append(f"Pitched at {p.years_required}–{max((y.hi or y.lo) for y in ym)} years of experience")
-    t_core = re.sub(r"\s*@.*$", "", title)  # "Counsel @ Riskified": the employer name isn't the practice area
-    if (LAWYER_TITLE.search(t_core) or re.search(r"\bassociate\b", t_core, re.I)) and OFF_TARGET_PRACTICE.search(t_core) and not TARGET_PRACTICE.search(t_core):
-        poor.append(f"Practice area outside the target seats ({OFF_TARGET_PRACTICE.search(t_core).group(0).lower()} work)")
     if re.search(r"\bassociate\b", title, re.I) and LAW_FIRM_ASSOCIATE.search(text) and not re.search(r"underwrit|research|analyst", title, re.I):
         poor.append("Law-firm associate seat (billable practice, court time)")
     if CONTRACT_PLATFORM.search(p.company or ""):
@@ -276,7 +281,7 @@ def score(p: Posting) -> Posting:
     family = seat_family(p)
     if family:
         p.fit_signals = sig + [f"seat family: {family}"]  # shown in jobs.csv; not counted as a rubric signal
-    if not p.hard_exclude_reason and not poor and p.fit_score < FIT_MIN and not family:
+    if not p.hard_exclude_reason and not poor and p.fit_score < FIT_MIN and not family and not inhouse_legal:
         poor.append(f"Weak fit: {p.fit_score} of 10 signals" + (f" ({', '.join(sig)})" if sig else ""))
     p.poor_reason = p.hard_exclude_reason or "; ".join(poor)
     p.domain_floor = ((f"{fy}+ yrs " if fy is not None else "") + f"{dom} (meets: {floor})") if dom else ""

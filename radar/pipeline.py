@@ -12,7 +12,7 @@ from email.message import EmailMessage
 from . import config, output, phase1, phase2, phase4, runlog
 from .http import channel, client
 
-CHANNELS = ["public_sector", "official_apis", "hn", "feeds", "commoncrawl", "websearch", "wayback"]
+CHANNELS = ["public_sector", "official_apis", "hn", "feeds", "commoncrawl", "websearch", "wayback", "rlegaltech"]
 
 
 CHANNEL_TIMEOUT_S = 50 * 60  # a hung channel must not stretch a run to the job timeout
