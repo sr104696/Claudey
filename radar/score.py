@@ -49,7 +49,8 @@ OFF_TARGET_PRACTICE = re.compile(
 TARGET_PRACTICE = re.compile(r"regulat|policy|risk|payments|credit|litigation|investigat|enforcement|compliance counsel|product counsel|governance|crypto|digital asset|stablecoin|derivatives|market", re.I)
 LAW_FIRM_ASSOCIATE = re.compile(r"\bbillable|our (attorneys|lawyers|clients)|law firm associate|join our [\w ]*(practice|group)|am ?law", re.I)
 # Seth, 2026-09-25: law firms are out for lifestyle reasons, government is out on pay; listed pay must clear $150K
-LAW_FIRM_NAME = re.compile(r"\b(LLP|L\.L\.P\.|PLLC|P\.C\.|LPA)\b|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
+# no \b after the suffix: "Smith, P.C." ends in a dot, so a trailing word boundary never matched
+LAW_FIRM_NAME = re.compile(r"(?<![\w.])(LLP|L\.L\.P\.|PLLC|P\.C\.|P\.A\.|LPA)(?!\w)|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
 # Seth, 2026-09-28: knowledge-management / practice-support lawyers at firms are non-billable. Still a law-firm seat
 # (poor match), but a reviewable one: output.near_misses() lets these through instead of treating them as settled.
 LAW_FIRM_NONBILLABLE_TITLE = re.compile(

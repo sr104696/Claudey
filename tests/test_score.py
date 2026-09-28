@@ -86,3 +86,10 @@ def test_academy_family_needs_finance_context():
                                      body="Become a registered behavior technician. Paid training.")) == ""
     assert score.seat_family(posting(company="Point72", title="Point72 Academy Investment Analyst Program",
                                      body="Learn fundamental investing on the buy side.")) == "employer-run finance academy"
+
+
+def test_law_firm_suffixes_at_end_of_name():
+    for name in ("Morgan & Morgan, P.A.", "Smith Jones, P.C.", "Holwell Shuster & Goldberg LLP", "Acme PLLC"):
+        assert score.LAW_FIRM_NAME.search(name), name
+    for name in ("Pagaya", "Spa Holdings", "LPL Financial", "Capital Markets PA Inc"):
+        assert not score.LAW_FIRM_NAME.search(name), name
