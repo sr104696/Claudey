@@ -1,0 +1,15 @@
+[
+  {
+    "key": "ashby:jobs-page-4dc2685b-eb82-46d1-a3f9-1f0764dba814:84801ae6-3013-462d-a649-131936ad20fe",
+    "desc_hash": "86a720ecad744f8b",
+    "sales_attached": "N",
+    "domain_floor_years": 10,
+    "domain": "government contracts law (aerospace/defense, FAR/DFARS)",
+    "meets_floor": "N",
+    "litigation_accepted": "N",
+    "jd": "Y",
+    "hard_exclude": "10+ years of experience required (at least 10 years government contracts, with 5+ in aerospace/defense)",
+    "override_regex_exclude": false,
+    "rationale": "'at least 10 years of government contracts law experience, with 5+ years in aerospace or defense' - explicit 10+ year requirement in a specialized domain candidate lacks entirely."
+  }
+]

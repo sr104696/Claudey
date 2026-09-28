@@ -49,7 +49,8 @@ OFF_TARGET_PRACTICE = re.compile(
 TARGET_PRACTICE = re.compile(r"regulat|policy|risk|payments|credit|litigation|investigat|enforcement|compliance counsel|product counsel|governance|crypto|digital asset|stablecoin|derivatives|market", re.I)
 LAW_FIRM_ASSOCIATE = re.compile(r"\bbillable|our (attorneys|lawyers|clients)|law firm associate|join our [\w ]*(practice|group)|am ?law", re.I)
 # Seth, 2026-09-25: law firms are out for lifestyle reasons, government is out on pay; listed pay must clear $150K
-LAW_FIRM_NAME = re.compile(r"\b(LLP|L\.L\.P\.|PLLC|P\.C\.|LPA)\b|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
+# no \b after the suffix: "Smith, P.C." ends in a dot, so a trailing word boundary never matched
+LAW_FIRM_NAME = re.compile(r"(?<![\w.])(LLP|L\.L\.P\.|PLLC|P\.C\.|P\.A\.|LPA)(?!\w)|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
 # Seth, 2026-09-28: knowledge-management / practice-support lawyers at firms are non-billable. Still a law-firm seat
 # (poor match), but a reviewable one: output.near_misses() lets these through instead of treating them as settled.
 LAW_FIRM_NONBILLABLE_TITLE = re.compile(
@@ -129,7 +130,9 @@ SEAT_FAMILIES = [  # CLAUDE.md: the seat families that loosen the Stage 2 domain
     ("litigation-finance underwriting", r"underwrit", r"litigation_finance|legal assets|litigation financ"),
     ("legal-AI research/build seat", r"applied legal research|legal research|legal engineer|r&d attorney|legal fellow", r"legal_ai|legal ai|\bai\b"),
     ("business-side regulatory risk", r"regulatory (risk|exam|engagement|relations)|regulatory risk", r""),
-    ("employer-run finance academy", r"academy|rotational|investment analyst program|client investment research", r""),
+    # context required: "RBT Academy" (behavior technicians) and "Rotational Project Associate" (construction) matched before
+    ("employer-run finance academy", r"academy|rotational|investment analyst program|client investment research",
+     r"invest|financ|fund|trading|capital markets|hedge|asset manage|portfolio"),
     ("embedded qualitative research", r"fundamental research|market intelligence|\bcanvas\b", r""),
 ]
 

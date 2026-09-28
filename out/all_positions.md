@@ -2,7 +2,7 @@
 
 Every posting the radar has seen across 3 runs (Sept. 24, 2026 to Sept. 28, 2026), deduplicated by ATS job ID, then URL. Only section 1 and 2 rows were confirmed open on Sept. 28, 2026; section 3 is history. ★ marks the seat families where your background clears the domain-years screen. Government seats, law-firm seats and listed pay under $150K are excluded under your current rules.
 
-## 1. Open now: fits (99)
+## 1. Open now: fits (95)
 
 | Position | Company | Location | Listed pay | First seen |
 |---|---|---|---|---|
@@ -42,7 +42,6 @@ Every posting the radar has seen across 3 runs (Sept. 24, 2026 to Sept. 28, 2026
 | [Contracting Attorney](https://job-boards.greenhouse.io/judihealth/jobs/5429991008) | Judi Health | Charlotte, North Carolina, United States; Denver, Colorado, United States; New York, New York, United States; Charlotte, North Carolina, United States; Denver, Colorado, United States; New York, New York, United States | $182K–$227,500 base | Sept. 28, 2026 |
 | [Senior Counsel](https://job-boards.greenhouse.io/automatticcareers/jobs/8174113) | Automattic Careers | Remote | $180K–$300K base | Sept. 24, 2026 |
 | [Credit Risk Senior Manager](https://jobs.ashbyhq.com/marqeta-inc/bc141756-6538-4cf0-bd93-88503f0ec3cd) | Marqeta (already in your pipeline) | Remote - USA | $180,600–$225,800 base + bonus + equity | Sept. 28, 2026 |
-| [Trial Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5746107004) | Morgan & Morgan, P.A. | New York; Manhattan, New York, United States | $200K–$350K base + bonus | Sept. 28, 2026 |
 | [Associate - Funds](https://jobs.ashbyhq.com/normlaw/6edc2489-2afd-492d-9a61-4c663fee3b51) | Normlaw | New York City | $270K–$410K base + bonus | Sept. 28, 2026 |
 | [Associate Medical Director, Regulatory Management](https://job-boards.greenhouse.io/oscar/jobs/8193728) | Oscar Health | Remote; Florida, United States | $216,108–$283,642 base + bonus | Sept. 28, 2026 |
 | [Business Intelligence Lead](https://jobs.ashbyhq.com/oplabs/a9ecb4f8-ef35-426f-8527-daf37305bdc9) | Oplabs | New York | $218,674–$245,979 base + bonus | Sept. 28, 2026 |
@@ -65,13 +64,11 @@ Every posting the radar has seen across 3 runs (Sept. 24, 2026 to Sept. 28, 2026
 | [Healthcare Counsel – Regulatory and General Corporate](https://job-boards.greenhouse.io/medelitellc/jobs/5430291008) | MedElite Group, LLC. | Brooklyn, NY; Brooklyn, New York, United States | $150K–$185K base + bonus | Sept. 28, 2026 |
 | [Counsel, Product (Health-Tech)](https://jobs.ashbyhq.com/hims-and-hers/54835fe6-7349-46ea-8518-097f143fbd44) | Hims And Hers | US Remote | $170K–$210K base + equity | Sept. 24, 2026 |
 | [Legal Counsel](https://jobs.ashbyhq.com/solveintelligence/07c9b5d3-5bd1-4f75-8741-04b076c32dd9) | Solveintelligence | New York | $150K–$220K base | Sept. 28, 2026 |
-| [Federal Brief Writer](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6180204004) | Morgan & Morgan, P.A. | New York | $175K–$200K base | Sept. 28, 2026 |
 | [Associate Director, Regulatory Affairs](https://parabilismed.com/job-opportunity/?gh_jid=8738272002) | Parabilis Medicines | Remote; Cambridge, Massachusetts, United States | $170K–$195K base + bonus | Sept. 28, 2026 |
 | [Senior Regulatory Affairs Specialist](https://job-boards.greenhouse.io/oura/jobs/4363806009) | Ōura | Remote - United States | $151,300–$178K base + equity | Sept. 28, 2026 |
 | [Restructuring and Turnaround Services - Manager (Intelligent Manufacturing Solutions - Performance Improvement)](https://jobs.ashbyhq.com/riveron/de3867af-8a3f-4050-81d4-070775bf53d9) | Riveron | Detroit, MI; Dallas, TX; Atlanta, GA; South Florida; New York; Houston, TX; Chicago, IL; Washington, D.C. | $145K–$175K base | Sept. 28, 2026 |
 | [Product Counsel](https://jobs.ashbyhq.com/delinea/b0cb3127-979c-4b9d-95c4-ff1a72336ff9) | Delinea | U.S. Remote; San Francisco, CA | $175K–$205K base + bonus | Sept. 24, 2026 |
 | [Restructuring and Turnaround Services - Manager (Value Creation)](https://jobs.ashbyhq.com/riveron/77daf9da-18c2-46c5-a5f8-05b72763b51c) | Riveron | Detroit, MI; Dallas, TX; San Francisco Bay Area; Atlanta, GA; South Florida; New York; Houston, TX; Denver, CO; Southern California; Chicago, IL; Washington, D.C. | $135K–$175K base | Sept. 28, 2026 |
-| [Mass Arbitration Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6205050004) | Morgan & Morgan, P.A. | Chicago, Illinois, United States; Detroit, Michigan, United States; New York; Tampa, Florida, United States | $120K–$250K base | Sept. 28, 2026 |
 | [Claims Counsel](https://cowbell.insure/careers/open-positions/?gh_jid=7871116003) | Cowbell Cyber Inc. | Pleasanton, CA; New York, New York, United States; Pleasanton, California, United States | $165K base + bonus + equity | Sept. 24, 2026 |
 | [Assoc. Director, Regulatory Affairs Advertising and Promotion](https://job-boards.greenhouse.io/definiumtherapeutics/jobs/6135260004) | Definium Therapeutics | Remote | $160K–$190K base + bonus + equity | Sept. 28, 2026 |
 | [Manager, Regulatory Affairs](https://job-boards.greenhouse.io/iovancebiotherapeutics/jobs/5262981008) | Iovance Biotherapeutics | Remote | $140K–$160K base | Sept. 28, 2026 |
@@ -85,7 +82,6 @@ Every posting the radar has seen across 3 runs (Sept. 24, 2026 to Sept. 28, 2026
 | [[External] Associate Attorney (Consumer Protection / Complex Litigation)](https://jobs.ashbyhq.com/chariotclaims/a6ce7fc7-e5b4-4893-9f52-0c57ae7986ed) | Chariotclaims | United States | Not listed | Sept. 24, 2026 |
 | [Legal Counsel](https://jobs.ashbyhq.com/omnea/09147dab-bc8e-4cb8-badf-5c7b76733aec) | Omnea | New York | Not listed | Sept. 28, 2026 |
 | [Product Counsel](https://jobs.ashbyhq.com/solace/df5cc3d7-5ef5-4c97-be98-8b81c2283db3) | Solace | United States | Not listed | Sept. 28, 2026 |
-| [Senior Attorney Recruiter](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6208438004) | Morgan & Morgan, P.A. | Manhattan, New York, United States | $100K–$150K base | Sept. 28, 2026 |
 | [Regulatory Manager / Senior Regulatory Manager](https://job-boards.greenhouse.io/precisionmedicinegroup/jobs/6202609004) | Precision Medicine Group | Remote, Serbia | Not listed | Sept. 28, 2026 |
 | [Regulatory Manager / Senior Regulatory Manager](https://job-boards.greenhouse.io/pfm/jobs/6202608004) | Precision for Medicine | Remote, Serbia | Not listed | Sept. 28, 2026 |
 | [Senior Underwriter - US or Bermuda](https://jobs.ashbyhq.com/soterinsure/64fc9b16-d542-4a94-8c61-5a37670a003b) | Soterinsure | US or Bermuda; New York City; Bermuda | Not listed | Sept. 28, 2026 |
@@ -105,6 +101,8 @@ Every posting the radar has seen across 3 runs (Sept. 24, 2026 to Sept. 28, 2026
 | [Attorney I](https://job-boards.greenhouse.io/nyiso/jobs/5132943007) | New York ISO | Rensselaer, New York, United States | $92,300–$153,900 base | Sept. 28, 2026 |
 | [Regulatory Compliance Manager, GTM Enablement](https://jobs.ashbyhq.com/range/8f201114-8b14-416c-9cac-ab502bc67a21) | Range | McLean, VA; New York City | Not listed | Sept. 28, 2026 |
 | [Regulatory Compliance Manager, Operational Improvement](https://jobs.ashbyhq.com/range/29659cc1-e943-4be1-9658-71df894f88d4) | Range | McLean, VA; New York City | Not listed | Sept. 28, 2026 |
+
+Not listed above: 4 contract-platform or rule-excluded rows.
 
 ## 2. Open now: near misses (25)
 
@@ -147,7 +145,7 @@ Closed, removed, or not reachable this run. Not evidence the role is open.
 | [Compliance, Employment & Litigation Counsel](https://www.fivetran.com/careers/job?gh_jid=7870801003) | Fivetran  | Sept. 25, 2026 | $186,895–$224,283 base + bonus + equity |
 | [Regulatory Product Specialist](https://job-boards.greenhouse.io/adyen/jobs/8068182) | Adyen | Sept. 25, 2026 | $120K–$155K base + equity |
 
-## 4. Outside NYC / US-remote (112)
+## 4. Outside NYC / US-remote (90)
 
 | Position | Company | Location | Listed pay |
 |---|---|---|---|
@@ -186,7 +184,6 @@ Closed, removed, or not reachable this run. Not evidence the role is open.
 | [Corporate Counsel - Litigation](https://jobs.ashbyhq.com/snowflake/25e763a6-e66a-4f65-9b71-9e12a2c2b588) | Snowflake | US-GA-Atlanta; US-CA-Menlo Park | $150K–$197,400 base |
 | [Counsel](https://jobs.ashbyhq.com/sydecar/3b2efd2d-50f1-4222-95b7-bd292019044f) | Sydecar | San Francisco Office - Hybrid | $150K–$185K base + bonus + equity |
 | [VP, Operations & Strategic Advisory Counsel](https://ms.wd5.myworkdayjobs.com/External/job/Dallas-TX-5960/VP--Operations---Strategic-Advisory-Counsel_PT-JR042710) | Morgan Stanley | Dallas TX 5960 | Not listed |
-| [Trial Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5732401004) | Morgan & Morgan, P.A. | Sacramento, California, United States | $100K–$500K base + bonus |
 | [Senior Counsel, Privacy - Blockchain & Digital Assets](https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Purchase-New-York/Senior-Counsel--Privacy---Blockchain---Digital-Assets_R-288720-1) | Mastercard | Purchase, New York | $204K–$325K base + bonus |
 | [Senior Counsel, Regulatory - Technology](https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Purchase-New-York/Senior-Counsel--Regulatory---Technology_R-290617-2) | Mastercard | Purchase, New York; O'Fallon, Missouri (Main Campus) | $204K–$325K base + bonus |
 | [AI Product Counsel](https://jobs.ashbyhq.com/notion/5b710ddc-460c-4254-9436-fde654b600ae) | Notion | San Francisco, California | $230K–$260K base |
@@ -215,21 +212,12 @@ Closed, removed, or not reachable this run. Not evidence the role is open.
 | [Director, Regulatory Solutions Business Analyst](https://careers.fitch.group/job/London-Director%2C-Regulatory-Solutions-Business-Analyst/1415632133/) | Fitch Group (LevFin Insights / CreditSights) | Not stated | Not listed |
 | [Legal Director](https://jobs.ashbyhq.com/manychat/4ccdbeec-ed96-49e2-98c3-5e27c454092e) | Manychat | Austin, US | Not listed |
 | [Attorney (Education Law)](https://job-boards.greenhouse.io/mcneeswallacenurickllc/jobs/4279125009) | McNees Wallace & Nurick LLC | Harrisburg, Pennsylvania, United States; Lancaster, Pennsylvania, United States; Plymouth Meeting, Pennsylvania, United States; Harrisburg, Pennsylvania, United States; Lancaster, Pennsylvania, United States; Plymouth Meeting, Pennsylvania, United States | Not listed |
-| [Personal Injury Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6105294004) | Morgan & Morgan, P.A. | Memphis, Tennessee, United States | Not listed |
-| [Trial Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5663889004) | Morgan & Morgan, P.A. | Saint Louis, Missouri, United States | Not listed |
-| [Trial Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5821969004) | Morgan & Morgan, P.A. | Miami, Florida, United States | Not listed |
-| [General Liability Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6022090004) | Morgan & Morgan, P.A. | Detroit, Michigan, United States | Not listed |
-| [Personal Injury Trial Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5583404004) | Morgan & Morgan, P.A. | Columbia, South Carolina, United States | Not listed |
-| [Personal Injury Pre-Suit Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6187675004) | Morgan & Morgan, P.A. | Raleigh | Not listed |
-| [Maritime Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5784671004) | Morgan & Morgan, P.A. | Miami, Florida, United States | Not listed |
 | [Human Resources US Policy Lead](https://ms.wd5.myworkdayjobs.com/External/job/Dallas-Texas-United-States-of-America/Human-Resources-US-Policy-Lead_PT-JR039073) | Morgan Stanley | Dallas, Texas, United States of America | Not listed |
 | [Head of Regulatory](https://jobs.ashbyhq.com/overjet/2b55c1bb-34a8-416b-88a7-b5399a2a888e) | Overjet | San Mateo, CA | Not listed |
 | [Workers' Compensation Attorney](https://job-boards.greenhouse.io/parrishdevaughn/jobs/5190355007) | Parrish DeVaughn | Oklahoma City | Not listed |
 | [Associate General Counsel](https://jobs.ashbyhq.com/range/d5f451ed-d3a8-45d7-8fcb-98252c83c090) | Range | McLean, VA | Not listed |
 | [Director of Legal and Compliance](https://jobs.ashbyhq.com/synquery/9daff653-9dff-4f16-a391-02e99f9c3774) | Synquery | Nashville | Not listed |
-| [Workers' Compensation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5813899004) | Morgan & Morgan, P.A. | Irvine, California, United States | $100K–$500K base |
 | [Policy Advisor](https://jobs.ashbyhq.com/miri/5d13ba07-8fbf-4f46-aa1b-9000a7d1dc3f) | Miri | Washington, DC | $120K–$300K base |
-| [Medical Malpractice Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6018738004) | Morgan & Morgan, P.A. | Los Angeles, California, United States | $100K–$300K base |
 | [Head of Risk](https://jobs.ashbyhq.com/moderntreasury/6aea2452-d858-434b-acc9-e9785c21cb69) | Moderntreasury | San Francisco | $200K–$285K base + equity |
 | [Regulatory Counsel](https://jobs.ashbyhq.com/meter/df958cc2-ac37-47fb-875f-a703d306e1ed) | Meter | San Francisco | $172K–$275K base + equity |
 | [Regulatory Program Manager](https://jobs.ashbyhq.com/radiant-industries/57892e91-01f8-4911-be93-7fdffbe52412) | Radiant Industries | El Segundo, CA | $186K–$258,300 base + equity |
@@ -249,18 +237,6 @@ Closed, removed, or not reachable this run. Not evidence the role is open.
 | [Policy & Regulatory Affairs Manager](https://jobs.ashbyhq.com/emerald-ai/71963ac3-2687-4040-9f46-f6c9cbbd421e) | Emerald Ai | Washington D.C.; Boston; Bay Area | Not listed |
 | [Senior Market Research Associate, Investor Development Team, Barcelona](https://careers.fitch.group/job/London-Senior-Market-Research-Associate%2C-Investor-Development-Team%2C-Barcelona/1436834833/) | Fitch Group (LevFin Insights / CreditSights) | Not stated | Not listed |
 | [Mergers & Acquisition Analyst](https://job-boards.greenhouse.io/koleyjessen/jobs/4114123008) | Koley Jessen P.C., L.L.O | Omaha, Nebraska, United States | Not listed |
-| [Attorney \| Litigation (2-4 Years)](https://job-boards.greenhouse.io/koleyjessen/jobs/4033046008) | Koley Jessen P.C., L.L.O | Omaha, Nebraska, United States | Not listed |
-| [Mass Tort Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/5647647004) | Morgan & Morgan, P.A. | Boston, Massachusetts, United States; Chicago, Illinois, United States; Orlando, Florida, United States; Tampa, Florida, United States; Washington, District of Columbia, United States; Tampa, Florida, United States | Not listed |
-| [Inventory Attorney- Complex Litigation](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6010457004) | Morgan & Morgan, P.A. | Chicago, Illinois, United States; Detroit, Michigan, United States; Orlando, Florida, United States; Tampa, Florida, United States; Orlando, Florida, United States | Not listed |
-| [Medical Malpractice & Nursing Home Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6149056004) | Morgan & Morgan, P.A. | Boston, Massachusetts, United States | Not listed |
-| [Personal Injury Pre Suit Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6106106004) | Morgan & Morgan, P.A. | Charleston, West Virginia, United States | Not listed |
-| [General Liability Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6193633004) | Morgan & Morgan, P.A. | Scranton | Not listed |
-| [Workers Compensation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6185631004) | Morgan & Morgan, P.A. | Chicago, Illinois, United States | Not listed |
-| [Class Action Associate Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6173484004) | Morgan & Morgan, P.A. | Tampa, Florida, United States | Not listed |
-| [Medical Malpractice Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6173441004) | Morgan & Morgan, P.A. | Jacksonville, Florida, United States | Not listed |
-| [Medical Malpractice Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6188003004) | Morgan & Morgan, P.A. | Birmingham, Alabama, United States | Not listed |
-| [Medical Malpractice Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6129876004) | Morgan & Morgan, P.A. | Atlanta, Georgia, United States | Not listed |
-| [Nursing Home Litigation Attorney](https://job-boards.greenhouse.io/morganmorganjobsapplynow/jobs/6129870004) | Morgan & Morgan, P.A. | Tampa, Florida, United States | Not listed |
 | [SME Compliance Lawyer](https://plata.careers/vacancy/details?id=5386504008&gh_jid=5386504008) | Plata Card | México; Mexico City, Mexico City, Mexico | Not listed |
 | [Legal Counsel](https://jobs.ashbyhq.com/terrafirma-inc/a59df8e3-8478-47a3-a80e-71ff5970579d) | Terrafirma | Robot Ranch (Austin, TX) | Not listed |
 

@@ -118,3 +118,13 @@ def test_name_collision_guard_allows_own_domain_label(monkeypatch):
     assert (ats, slug) == ("lever", "parabellum")
     ats, slug, note = phase2.detect({"company": "Parabellum", "careers_url": "https://www.parabellumcap.com/"})
     assert ats == "none" and "name-collision guard" in note
+
+
+def test_non_workday_tenant_hints_are_not_read_as_workday(monkeypatch):
+    called = []
+    monkeypatch.setattr(phase2.workday, "list_jobs", lambda spec, max_pages=1: called.append(spec) or ("ok", [1]))
+    monkeypatch.setattr(phase2, "_scan_careers", lambda url: None)
+    monkeypatch.setattr(phase2, "PROBES", [])
+    ats, _, _ = phase2.detect({"company": "DTCC Test Co", "careers_url": "", "ats_hint": "oraclehcm",
+                               "ats_slug_or_tenant": "ebxr|us2|CX_1", "confidence": "verified_url"})
+    assert ats == "none" and called == []
