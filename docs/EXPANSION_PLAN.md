@@ -2,9 +2,10 @@
 
 Date: 2026-09-25. Input: the master expansion doc (2026-09-26, pasted in session; not yet committed. It
 supersedes `claudey-sourcing-expansion-ideas.md`). Section references (§, A1–A25, B1–B17, C1–C12, G1–G5)
-point to it. I read it against the prior folders (`new_vibe_suggestions/`, `New Job Radar Expansion Suggestions/`,
-`new-qwen-suggestions-expansion-ideas/`, Kimi `NEW-SOURCES.md`, Codex sweep review) and against the repo as it
-stands: `radar/`, `seeds/`, `out/run_log.md` (run 36169782966) and `out/jobs.csv` (969 rows).
+point to it. The first draft was grounded in the repo as it stands: `radar/`, `seeds/`, `out/run_log.md`
+(run 36169782966) and `out/jobs.csv` (969 rows). For the earlier suggestion folders it relied on the master
+doc's own summary. On 2026-09-28, five parallel audit agents read every prior folder in full and checked it
+against this plan and the current code. §9 records what they found, and the calls below are corrected to match.
 
 ---
 
@@ -19,7 +20,7 @@ These numbers drive every call below. All come from files in the repo.
 | About 40 Workable probes in one run returned **HTTP 429**. Each company was then logged as "no probe hit". Only 3 Workable calls returned 200. | `out/run_log.md` Failures section | "Searched, no result" and "blocked" were merged, against §15(e). Many of the dark employers above were never actually checked. **Fixed in this commit** (see §7). |
 | 55 Axiom rows and 14 "at least 18 years of age" rows were hard-excluded as "Asks for 10+ years". | `hard_exclude_reason` in `out/jobs.csv` | A regex bug in `extract.years_mentions`. **Fixed in this commit.** |
 | `fit_score`: 260 rows at 4, 211 at 3, 169 at 5. The fit bar is 3 of 10. | `out/jobs.csv` | The score doesn't discriminate. JD, base ≥ $150K, fintech and 2–5 years co-occur in every product-counsel posting. |
-| 7 of 57 fit rows are NY AG or state litigation seats (appellate, civil litigation, prosecution). | `out/open_positions_2026-09-25.md` | CLAUDE.md says he doesn't want court time. The rubric only enforces that for law-firm associate seats. |
+| *(Superseded by Q2: government is out.)* 7 of 57 fit rows are NY AG or state litigation seats (appellate, civil litigation, prosecution). | `out/open_positions_2026-09-25.md` | CLAUDE.md says he doesn't want court time. The rubric only enforces that for law-firm associate seats. |
 | 35 of 57 fit rows have domain floor "meets: stretch" or no judgment. | `domain_floor` column | Stage 2 is still binding on most "fit" rows. The table overstates actionable fit. |
 | Channel yield: HN 0 of 750 comments. Wayback 0 leads. The Muse 113 leads, 3 verified. hirelegalops 23 → 14 kept. Public sector 20 → 20 verified, **12 fit**. Web search 41 leads (09-24), 0 when Claude isn't in the loop. | run_log Channels table | Public sector is the highest-precision channel. Web search is the only channel that reaches thesis seats outside the registry, and it depends on Claude being in the loop. |
 | `posted_date` is present on 943 of 969 rows. | `out/jobs.csv` | Priority item #14 (datePosted) is mostly already done. Only the `--since` filter remains. |
@@ -50,10 +51,13 @@ These numbers drive every call below. All come from files in the repo.
 **Phase P: precision and honesty (week 1, mostly config and small code).**
 
 1. **P1. Done in this commit:** fix the years-regex false excludes, and make Workable 429 a "not checked" state instead of "no board". Rows change on the next `score` run.
-2. **P2. Split the fit table into two.** First, "Thesis seats": rows matching `score.SEAT_FAMILIES` or the credit-intel family, ranked by domain floor `meets: Y`. Second, "Other in-house counsel fits". `SEAT_FAMILIES` already exists in `radar/score.py`, so this is an `output.py` change plus a `seat_family` column in `jobs.csv`. It lets breadth and precision coexist. **Blocker:** the table headings are Seth's call (Q1).
-3. **P3. Court-time rule.** Poor-match government and nonprofit litigator seats: appellate or trial litigation, prosecution, "Assistant Attorney General: Civil Litigation". Keep investigation-titled seats (Investor Protection, white-collar investigations). This mirrors the existing law-firm associate rule and CLAUDE.md. **Blocker:** Q2.
+2. ~~**P2. Split the fit table into two.**~~ *Superseded by Q1 (one ranked table, built).* First, "Thesis seats": rows matching `score.SEAT_FAMILIES` or the credit-intel family, ranked by domain floor `meets: Y`. Second, "Other in-house counsel fits". `SEAT_FAMILIES` already exists in `radar/score.py`, so this is an `output.py` change plus a `seat_family` column in `jobs.csv`. It lets breadth and precision coexist. **Blocker:** the table headings are Seth's call (Q1).
+3. ~~**P3. Court-time rule.**~~ *Superseded by Q2 (government and law firms out, built).* Poor-match government and nonprofit litigator seats: appellate or trial litigation, prosecution, "Assistant Attorney General: Civil Litigation". Keep investigation-titled seats (Investor Protection, white-collar investigations). This mirrors the existing law-firm associate rule and CLAUDE.md. **Blocker:** Q2.
 4. **P4. Evergreen and talent-pool flag.** Flag a posting when its close date is more than 6 months out, `posted_date` is more than 120 days old, or the text says "talent pool", "general interest" or "future opportunities". Flagged rows sink to the bottom of the tables (the NY AG row with an Aug. 2027 close date, Axiom's talent-platform listings).
 5. **P5. Per-origin yield, including a thesis-fit column.** Extend the run_log Channels table with an origin per board (`registry`, `cc`, `feed`, `lead`) and a `thesis_fit` count. This is the measurement for every later item (priority item #21, moved to the front).
+   - Build on what exists: `radar/health.py` and `data/source_health.csv` already implement the silence alarm.
+   - Adopt the Codex review's fuller contract (`Codex's Code Review Results/Sweep and Source Coverage Review.md`): a `source_catalog` with a weekly `coverage.md`, per-role-family coverage targets, and canonical-resolve rate.
+   - Keep three states distinct everywhere: "searched, no result", "not covered" and "blocked".
 
 **Phase I: infrastructure before growth (weeks 1–2).**
 
@@ -66,13 +70,35 @@ These numbers drive every call below. All come from files in the repo.
 
 10. **D1. Careers-page watch adapter** (new idea N1). For every `none` row, fetch `careers_url` weekly. Extract JSON-LD `JobPosting` if present, otherwise hash the visible text of the jobs section and emit a lead when it changes. This covers custom sites, email-to-apply pages and PDF postings: Parabellum, LCM, Therium, Eurasia, Capitol Forum, MLex, Hunterbrook, LSTA, ISDA. One request per employer per week.
 11. **D2. Sitemap and JSON-LD sweep for ATS misses** (master doc §6 bullet). Run it before D1's hashing fallback. Same 3-state tracking.
-12. **D3. iCIMS and Phenom adapters, only for named dark employers.** First confirm which of Moody's, DTCC, ICE, Millennium, Balyasny, Elliott and SIG sit on each platform: one careers-page fetch each, done inside D2. Don't build Eightfold, Taleo or Kenexa until a dark thesis employer needs them.
+12. **D2b. Small-ATS feed harvesting.** Harvest these feeds (`new-qwen-suggestions-expansion-ideas/02` lines 20–34; sketch in `04` lines 26–36), reusing `radar/ats/html.py` `rmk_sitemap` as the template:
+    - Breezy `xml-feeds`
+    - JazzHR `/feed`
+    - Teamtailor JSON-LD
+    - Recruitee `/api/offers/`
+    - BambooHR `/careers/list`
+    - iCIMS `careers-<corp>.icims.com/feed`
+
+    Two related gaps, both confirmed still open:
+    - The Common Crawl sweep only knows 3 ATS families (`radar/discover/commoncrawl.py` `PATTERNS`).
+    - Workday pulls only one site per tenant (`radar/ats/workday.py`).
+
+    Widen each only for dark thesis employers, not wholesale.
+13. **D3. iCIMS and Phenom adapters, only for named dark employers.** First confirm which of Moody's, DTCC, ICE, Millennium, Balyasny, Elliott and SIG sit on each platform: one careers-page fetch each, done inside D2. Don't build Eightfold, Taleo or Kenexa until a dark thesis employer needs them.
 
 **Phase S: targeted seeding (weeks 3–4). Rows only; Phase 2 does the work.**
 
-13. **S1. Seed the thesis-dense sectors only.** A23 ratings (KBRA, DBRS Morningstar, AM Best, Moody's), A7 claims trading (Xclaim, Claims Market, Reorg), A6 restructuring advisory (AlixPartners, Ankura, Stout, M3, PJT restructuring), A1 IP litigation finance (RPX, Unified Patents, Ocean Tomo, Docket Navigator), A9 index governance (MSCI, S&P DJI, FTSE Russell), A14 Expert Institute, A13 PLI and LexisNexis Practical Guidance. About 30 rows. Tag `origin=master_doc_A*` so P5 measures them.
+13. **S1. Seed the thesis-dense sectors only.** A23 ratings (KBRA, DBRS Morningstar, AM Best, Moody's), A7 claims trading (Xclaim, Claims Market, Reorg), A6 restructuring advisory (AlixPartners, Ankura, Stout, M3, PJT restructuring), A1 IP litigation finance (RPX, Unified Patents, Ocean Tomo, Docket Navigator), A9 index governance (MSCI, S&P DJI, FTSE Russell), A14 Expert Institute, A13 PLI and LexisNexis Practical Guidance. Also add the legal-tech employers whose boards Kimi verified live (Ironclad, Relativity, Everlaw, DISCO, Clio); their legal-AI build seats are seat family 2. About 35 rows. Tag `origin=master_doc_A*` so P5 measures them.
 14. **S2. Add the G3 keyword families only for the sectors seeded in S1**, plus "claims trading" and "rating surveillance". Gate each on `_LEGAL_CTX` or `_FINANCE_CTX` as the doc says. Leave the rest of G3 out (see the kill list).
-15. **S3. Add feeds.csv rows for keyless, policy-checked feeds:** Arbeitnow, findwork, Jobicy, Himalayas, PND, and HigherEdJobs "counsel". Each with a tight `title_allowlist`. They cost nothing and retire themselves under the yield rule. Check each host's robots.txt at add time.
+15. **S3. Add feeds.csv rows for keyless, policy-checked feeds:** Arbeitnow, findwork, Jobicy, Himalayas and PND. Each with a tight `title_allowlist`. They cost nothing and retire themselves under the yield rule. Check each host's robots.txt at add time.
+    - HireLegalOps `jobs.json` is already live.
+    - HigherEdJobs is dropped: university counsel offices are mostly below the pay floor.
+    - One-fetch robots/terms test each before building, from `new_vibe_suggestions/`: eFinancialCareers (QUICK_START lines 11–96), the ACC job board (QUICK_START lines 453–517), and the GARP and PRMIA career centers (SEARCH_QUERIES lines 88–97). GARP and PRMIA sit closest to seat family 3.
+16. **S4. Web-search families from DISCOVERY-IDEAS that the first draft dropped by omission.** These are query rows only, each with its keep-out test from that doc:
+    - litigation-risk and ATE insurance diligence
+    - proxy and governance research
+    - political-risk and regulatory intelligence
+    - competition and market-conduct research
+    - counterparty and transaction-risk diligence
 
 **Phase F: freshness and recall without Claude in the loop (weeks 4–6).**
 
@@ -80,11 +106,13 @@ These numbers drive every call below. All come from files in the repo.
 17. **F2. Rotate queries instead of running ~140 every time.** Keep about 40 queries per run. Retire rows with 0 leads over 4 runs. Promote rows from G1, and from phrases in thesis-fit postings, 5–10 per run. This gets the recall of a 140-row matrix at about 30% of the search spend.
 18. **F3. Google Alerts RSS, about 15 alerts keyed to thesis vocabulary** ("litigation finance" associate, "legal analyst" restructuring, "claims trading", "credit policy" counsel…). Stored in `seeds/alerts.csv`, polled by `feeds.py`. **Blocker:** Seth creates the alerts in a browser (Q3).
 19. **F4. Hot watchlist.** Poll about 25 thesis employers (Burford, Omni, Legalist, Octus, 9fin, Fitch/CreditSights, Point72, D. E. Shaw via leads, Bridgewater, Harvey, Norm AI, Hebbia, Jane Street, Capstone…) on Mon/Wed/Fri with conditional requests (I2). Everything else stays weekly.
+    - **Prerequisite:** the diff identity model is coarse. `output._match_key` uses the first 8 characters of the company name plus the title, and `phase1.same_role` uses 0.6 token overlap. Either can mis-track "still open" for exactly these employers.
+    - Key watchlist rows by ATS job ID before building F4. This comes from the GitHub CLI review, `bugs.md` items 2–3.
 20. **F5. BarkerGilmore and other recruiter alerts through `import-inbox`.** No code change beyond sender patterns. **Blocker:** Seth subscribes (Q4).
 
 **Phase L: learning loop (continuous from week 2).**
 
-21. **L1. Near-miss digest.** Put score-2 rows, and fit rows with domain floor "stretch", into a weekly `out/near_miss.md` with one line on why each missed. Seth's reactions (Q5) become rubric and keyword changes.
+21. **L1. Near-miss digest.** *Built (Q5).* Also add a near-miss page to the Lovable dashboard; `docs/LOVABLE.md` doesn't list the file yet. Put score-2 rows, and fit rows with domain floor "stretch", into a weekly `out/near_miss.md` with one line on why each missed. Seth's reactions (Q5) become rubric and keyword changes.
 22. **L2. Miss audit** (new idea N3). Monthly, check thesis-family hires that became public against the snapshots. That is the only direct recall measure available.
 
 ---
@@ -110,6 +138,14 @@ These numbers drive every call below. All come from files in the repo.
 | **Sector-specific trade-association parsers (A8)** | ISDA and LSTA are already in the registry and dark. D1 covers them with one generic adapter. |
 | **Legacy ATS adapters (Taleo, Kenexa, SilkRoad, Dayforce, UKG, ADP)** | Build only when D2 names a dark thesis employer on one. |
 | **Funding-event, GDELT and wire triggers (B13, B14) for now** | Medium effort. The thesis employers (funds, rating agencies, funders) don't hire off funding rounds. Revisit for legal-AI startups after F4 exists. |
+| **Government and international sprawl** (`new_vibe_suggestions/SEARCH_QUERIES.md` lines 69–81 and 149–161; `EXPANSION_STRATEGY.md` lines 37–55; `new-qwen-suggestions-expansion-ideas/01` §G; N10 below) | Seth ruled government out (Q2), and he is NYC or US-remote only. |
+| **User-Agent rotation, CORS proxy, "blocked-site workarounds", rotating queries "to avoid pattern detection"** (`EXPANSION_STRATEGY.md` lines 220–226; `SEARCH_QUERIES.md` line 222) | These are evasion. They conflict with the transparent contact-UA rule and with robots.txt. |
+| **"LinkedIn monitoring (without scraping)"** (`EXPANSION_STRATEGY.md` lines 143 and 196) | CLAUDE.md bans LinkedIn outright. There is no carve-out. |
+| **Penn Law alumni via a Symplicity login** (`Vibe Coder's Code Review Results/PENN_LAW_ALUMNI_GUIDE.md`; `CHANNEL_SPECS.md` lines 617–850) | Login-gated scraping. The sanctioned route stays the email-alert inbox bridge (`import-inbox`). |
+| **The other Vibe `CHANNEL_SPECS` channels: AI Startup Jobs, GoInhouse and legal-tech board scrapers, Reddit r/legaltech** | None has a verified spec. The selectors are guesses. AI Startup Jobs is behind Cloudflare, and Reddit's robots.txt disallows everything. GoInhouse was already rejected. |
+| **DuckDuckGo HTML endpoint and r.jina.ai-style readers** (`new-qwen-suggestions-expansion-ideas/02` lines 108–112) | ToS-gray by that doc's own admission. Retired in favor of F1. |
+| **Diversity-board scrapes** (`SEARCH_QUERIES.md` lines 169–176) | Their provenance is unverified, and they risk re-aggregating Indeed and LinkedIn content. |
+| **Speculative Jobvite, iCIMS and Taleo adapters, and wholesale widening of the CC patterns** (`QUICK_START.md` lines 179–221; `IMPLEMENTATION_CODE.md` lines 9–125) | These widen the funnel the same way B10 does. Build only per D2b/D3, for a named dark employer. The Jobvite skeleton is kept as a reference. |
 | **Bluesky (C8) for now** | Needs an app password and a new module, and yield is unknown. Cheapest test: one manual search for `#hiring counsel` over 2 weeks. Build only if it finds something the other channels missed. |
 
 ---
@@ -145,7 +181,7 @@ Confidence: H/M/L. Each has its cheapest test.
 | N7 | **Scam and phish postings on keyless feeds.** Remote-only boards (Jobicy, Himalayas, Craigslist) carry fake "legal assistant" postings that ask for personal data. Phase 4's employer-domain verification is the defense. Add a rule that a feed lead whose apply URL isn't on an employer domain or a known ATS is never promoted. | M | Review the next S3 feed batch by hand. |
 | N8 | **Rank the fit table by "ask-to-offer" asymmetry.** Rows whose `domain_floor` is `meets: Y` and whose employer is in a Stage-2-loosening family go first. Show the rest in rubric-score order. The near-miss bucket's lesson is that *domain floor*, not fit_score, is the discriminating variable. | M | Re-sort today's 57 rows and have Seth rate the top 10 against the bottom 10. |
 | N9 | **Fit-signal decorrelation.** JD, pay ≥ $150K, fintech subject matter and 2–5 years co-occur in almost every product-counsel posting and together make a 4. Count them as one "generic in-house" signal so 3 of 10 means something. | M | Recompute fit_score with the four merged. Measure how many of the 57 drop out and whether any thesis row does. |
-| N10 | **Public-sector deepening before private breadth.** Public sector is 12 of 57 fits at 100% verification. The NY Fed Workday link is currently broken ("no Workday link"). Add the NY Fed direct Workday tenant, SEC NY regional office, FRBNY and OCC NY (§9 public-sector batch). This has the highest measured precision of any channel. | H | Fix the NY Fed tenant (one careers-page fetch to find the current link). |
+| ~~N10~~ | *Dead: Seth ruled government out (Q2).* **Public-sector deepening before private breadth.** Public sector is 12 of 57 fits at 100% verification. The NY Fed Workday link is currently broken ("no Workday link"). Add the NY Fed direct Workday tenant, SEC NY regional office, FRBNY and OCC NY (§9 public-sector batch). This has the highest measured precision of any channel. | H | Fix the NY Fed tenant (one careers-page fetch to find the current link). |
 
 ---
 
@@ -168,6 +204,53 @@ Impact on the 2026-09-25 data (a replay of the new rules over `out/jobs.csv`): t
 
 ---
 
+## 9. Folder audit (2026-09-28): five parallel agents, every prior folder read in full
+
+The folders covered: `new_vibe_suggestions/`, `new-qwen-suggestions-expansion-ideas/`, `Qwen Coder's Code Review Results/`, `github cli's code review results/`, `Vibe Coder's Code Review Results/`, `Kimi CLI  Coder's Code Review Results/`, the Codex review, `DISCOVERY-IDEAS.md`, `pr-staging/`, `docs/` and `seeds/current_list.md`.
+
+**What changed in the plan.** These are the edits above:
+- N10 is dead.
+- New kill-list rows for the rule-violating proposals.
+- D2b (small-ATS feeds) added.
+- The legal-tech ATS seeds added to S1.
+- S4 (DISCOVERY-IDEAS families) added.
+- A prerequisite added to F4 (dedupe identity).
+- The Codex coverage contract folded into P5.
+- The eFinancialCareers, ACC and GARP/PRMIA one-fetch tests added to S3.
+
+No agent found a reason to reverse the core call: light up the dark registry before adding breadth.
+
+**Bugs still open after the audit**, most important first:
+1. ~~Lever boards truncated at 100 postings~~ (Kimi, `SWEEP-KILLERS.md` K2). **Fixed in this commit.** `radar/ats/lever.py` now pages with `skip`/`limit` and stops when a page adds no new IDs, so it's safe even if the API ignores `skip`.
+2. The Common Crawl sweep knows only Greenhouse, Lever and Ashby. This was deferred in `docs/REVIEW_RESPONSE.md` and is now scheduled in D2b.
+3. Coarse diff identity (`output._match_key`, `phase1.same_role`). This is the F4 prerequisite.
+4. Generic JSON-LD pages without a `JobPosting` return "unverified". This is a design limit that D2 will measure.
+5. No outbound host allow-list (GitHub CLI `security.md`). Low urgency for a read-only, single-user tool.
+6. Not independently re-verified: Common Crawl `last_checked` on failure, robots error-state memoization, and redirect-loop robots parsing.
+
+**Confirmed fixed:**
+- the 10+-years misfire
+- Workable 429 handling
+- The Muse categories
+- the Wayback "legal engineer" filter
+- Jane Street feed failures
+- SuccessFactors empty sitemap
+- SmartRecruiters discard
+- Ashby `isListed`
+- ranged-years excludes
+- the `\bbar\b` boundary
+- pipeline exit codes
+- HN per-role URLs
+- all the Q1, Q2 and Q5 work
+
+**By design, not a bug.** Poor-match rows outside NYC and US-remote appear only in `jobs.csv` (README: "weaker out-of-area matches are in jobs.csv").
+
+**One audit claim was wrong.** "HireLegalOps is missing from the plan": it is the live row in `seeds/feeds.csv`, and §1 cites its yield.
+
+**For Seth to decide.** Knowledge-management and "practice attorney" seats at law firms are usually non-billable, so the lifestyle reason may not apply to them. Today `is_law_firm` poor-matches them. Should they be carved out? `new-qwen-suggestions-expansion-ideas/01` lines 36–48 has the family.
+
+---
+
 ## Closing report
 
 - **Done.** Read the master doc against the prior folders and the live repo state (run log, jobs.csv, registry). Wrote this plan (synthesis, kill list, gestalt read, new ideas, questions).
@@ -180,4 +263,5 @@ Impact on the 2026-09-25 data (a replay of the new rules over `out/jobs.csv`): t
   - `detect()` returns the new note under a mocked 429.
   - The package imports cleanly.
   - A full refresh was not run, because it takes 60–120 min in CI. Excluded rows update on the next `python -m radar score` or refresh.
-- **Remains.** Everything from P2 on, per §4. The master doc itself isn't committed yet, so § references point outside the repo. Open questions are in §8.
+- **2026-09-28 folder audit (§9):** the plan is corrected, and the Lever pagination fix was tested against a fake API with 250 jobs, 100 jobs, 0 jobs, and an API that ignores `skip`.
+- **Remains.** Everything from P4 on, per §4. The master doc itself isn't committed yet, so § references point outside the repo. Open questions are in §8.

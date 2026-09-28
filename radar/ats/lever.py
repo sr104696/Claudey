@@ -51,15 +51,28 @@ def _posting(board: str, j: dict, company: str, source: str) -> Posting:
     )
 
 
+PAGE = 100  # the v0 postings API pages with skip/limit (big boards were truncated at 100 without it)
+
+
 def pull(board: str, company: str, source: str = "board:lever") -> tuple[str, list[Posting]]:
-    r = client().get(f"{API}/{board}", params={"mode": "json"})
-    if r.blocked or r.error:
-        return r.describe(), []
-    if r.status == 404:
-        return "board not found", []
-    if not r.ok:
-        return r.describe(), []
-    return "ok", [_posting(board, j, company, source) for j in r.json()]
+    jobs: dict[str, dict] = {}
+    for page in range(50):
+        r = client().get(f"{API}/{board}", params={"mode": "json", "skip": page * PAGE, "limit": PAGE})
+        if r.blocked or r.error:
+            if not jobs:
+                return r.describe(), []
+            break
+        if r.status == 404:
+            return "board not found", []
+        if not r.ok:
+            if not jobs:
+                return r.describe(), []
+            break
+        batch = [j for j in r.json() if j.get("id") not in jobs]
+        jobs.update((j["id"], j) for j in batch)
+        if len(batch) < PAGE:  # last page, or the API ignored skip and repeated itself
+            break
+    return "ok", [_posting(board, j, company, source) for j in jobs.values()]
 
 
 def verify(board: str, job_id: str, company: str, source: str = "verify") -> Posting | None:

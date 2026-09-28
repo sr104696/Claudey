@@ -107,7 +107,9 @@ jobs:
           git commit -m "Job radar refresh $(date -u +%Y-%m-%d) run ${{ github.run_id }} skip_cc=${{ inputs.skip_commoncrawl }}"
           # -X theirs is safe only because every path this job commits is regenerable radar output
           for i in 1 2 3; do
-            git pull --rebase -X theirs origin main && git push && exit 0
+            # rebase onto the branch this run was started from (rebasing a feature branch onto main rewrote its
+            # history and the push was rejected as non-fast-forward; run 36366129865)
+            git pull --rebase -X theirs origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
             echo "push attempt $i failed; retrying"; sleep 10
           done
           echo "push failed after 3 attempts"; exit 1

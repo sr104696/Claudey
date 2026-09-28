@@ -1,36 +1,38 @@
 query,channel,bucket,results_used,zero_runs
-"site:job-boards.greenhouse.io ""legal analyst"" New York",websearch:ats,ats-general,0,1
-"site:jobs.ashbyhq.com ""legal analyst"" OR ""bankruptcy"" OR ""restructuring""",websearch:ats,ats-general,3,0
-"site:job-boards.greenhouse.io ""clerkship"" counsel New York",websearch:ats,ats-general,3,0
-"site:jobs.lever.co litigation underwriting OR ""litigation finance""",websearch:ats,ats-general,0,1
-"site:jobs.ashbyhq.com ""regulatory counsel"" OR ""payments counsel"" OR ""product counsel""",websearch:ats,ats-general,9,0
-"site:job-boards.greenhouse.io ""prediction markets"" OR stablecoin counsel OR policy",websearch:ats,ats-general,0,1
-"site:jobs.ashbyhq.com ""regulatory"" counsel crypto OR stablecoin OR ""digital assets"" New York",websearch:ats,ats-general,3,0
+"site:jobs.ashbyhq.com ""legal analyst"" OR ""bankruptcy"" OR ""restructuring""",websearch:ats,ats-general,5,0
+"site:job-boards.greenhouse.io ""clerkship"" counsel New York",websearch:ats,ats-general,8,0
+"site:jobs.lever.co litigation underwriting OR ""litigation finance""",websearch:ats,ats-general,1,0
+"site:jobs.ashbyhq.com ""regulatory counsel"" OR ""payments counsel"" OR ""product counsel""",websearch:ats,ats-general,10,0
+"site:jobs.ashbyhq.com ""regulatory"" counsel crypto OR stablecoin OR ""digital assets"" New York",websearch:ats,ats-general,2,0
 "site:job-boards.greenhouse.io ""regulatory counsel"" OR ""policy counsel"" fintech OR crypto",websearch:ats,ats-general,5,0
-"site:job-boards.greenhouse.io ""legal engineer"" OR ""applied legal"" OR ""legal research"" AI New York",websearch:ats,ats-general,1,0
-"litigation finance underwriting associate job New York 2026 ""litigation finance""",websearch:aggregator,ats-general,2,0
-"site:builtinnyc.com ""regulatory counsel"" OR ""legal analyst"" OR ""product counsel"" fintech",websearch:aggregator,ats-general,3,0
-"site:jobs.ashbyhq.com ""AI governance"" OR ""AI policy"" counsel OR lawyer",websearch:ats,ats-general,6,0
-site:legal.io OR site:goinhouse.com regulatory counsel New York fintech 2026,websearch:aggregator,ats-general,5,0
-"site:job-boards.greenhouse.io ""market intelligence"" OR ""event-driven"" OR ""special situations"" analyst New York",websearch:ats,ats-general,1,0
-"""litigation finance"" underwriting associate OR analyst",websearch,litigation finance,,0
-"""legal assets"" investment associate",websearch,litigation finance,,0
-"""litigation funding"" ""clerkship""",websearch,litigation finance,,0
-"site:jobs.ashbyhq.com ""legal research"" LLM OR AI -engineer",websearch,legal-AI research,,0
-"""legal knowledge engineer""",websearch,legal-AI research,,0
-"""applied legal"" researcher OR scientist",websearch,legal-AI research,,0
-"""AI governance"" counsel ""New York""",websearch,legal-AI research,,0
-"""regulatory risk"" OR ""regulatory engagement"" ""second line"" New York",websearch,reg-risk at trading firms/banks,,0
-"""regulatory examinations"" manager trading firm",websearch,reg-risk at trading firms/banks,,0
-"""market structure"" counsel OR policy New York",websearch,reg-risk at trading firms/banks,,0
-"""analyst program"" ""experienced professionals"" investment",websearch,academies/rotational,,0
-"""rotational associate"" program ""no finance experience""",websearch,academies/rotational,,0
-"""market intelligence"" analyst hedge fund New York",websearch,embedded research,,0
-"""fundamental researcher"" OR ""channel checks"" fund",websearch,embedded research,,0
-"""legal analyst"" restructuring OR bankruptcy OR ""liability management""",websearch,credit/distressed research,,0
-"""credit research"" ""J.D.""",websearch,credit/distressed research,,0
-"""special situations"" research analyst ""J.D.""",websearch,credit/distressed research,,0
-"""prediction markets"" counsel OR policy OR regulatory",websearch,prediction markets / crypto,,0
-"stablecoin ""regulatory counsel"" OR ""policy counsel""",websearch,prediction markets / crypto,,0
-"site:hirelegalops.com ""legal engineer"" OR ""legal product"" OR ""innovation counsel""",websearch,legal-ops boards,,0
-"site:legaloperationsjobboard.com ""legal engineer"" OR ""legal product""",websearch,legal-ops boards,,0
+"site:job-boards.greenhouse.io ""legal engineer"" OR ""applied legal"" OR ""legal research"" AI New York",websearch:ats,ats-general,4,0
+"litigation finance underwriting associate job New York 2026 ""litigation finance""",websearch:aggregator,ats-general,0,1
+"site:builtinnyc.com ""regulatory counsel"" OR ""legal analyst"" OR ""product counsel"" fintech",websearch:aggregator,ats-general,5,0
+"site:jobs.ashbyhq.com ""AI governance"" OR ""AI policy"" counsel OR lawyer",websearch:ats,ats-general,7,0
+site:legal.io regulatory counsel New York fintech 2026,websearch:aggregator,ats-general,8,0
+"site:job-boards.greenhouse.io ""market intelligence"" OR ""event-driven"" OR ""special situations"" analyst New York",websearch:ats,ats-general,3,0
+"""litigation finance"" underwriting associate OR analyst",websearch,litigation finance,1,0
+"""legal assets"" investment associate",websearch,litigation finance,1,0
+"""litigation funding"" ""clerkship""",websearch,litigation finance,0,1
+"site:jobs.ashbyhq.com ""legal research"" LLM OR AI -engineer",websearch,legal-AI research,3,0
+"""legal knowledge engineer""",websearch,legal-AI research,0,1
+"""applied legal"" researcher OR scientist",websearch,legal-AI research,1,0
+"""AI governance"" counsel ""New York""",websearch,legal-AI research,2,0
+"""regulatory risk"" OR ""regulatory engagement"" ""second line"" New York",websearch,reg-risk at trading firms/banks,1,0
+"""regulatory examinations"" manager trading firm",websearch,reg-risk at trading firms/banks,1,0
+"""market structure"" counsel OR policy New York",websearch,reg-risk at trading firms/banks,0,1
+"""analyst program"" ""experienced professionals"" investment",websearch,academies/rotational,2,0
+"""rotational associate"" program ""no finance experience""",websearch,academies/rotational,1,0
+"""market intelligence"" analyst hedge fund New York",websearch,embedded research,1,0
+"""fundamental researcher"" OR ""channel checks"" fund",websearch,embedded research,0,1
+"""legal analyst"" restructuring OR bankruptcy OR ""liability management""",websearch,credit/distressed research,0,1
+"""credit research"" ""J.D.""",websearch,credit/distressed research,2,0
+"""special situations"" research analyst ""J.D.""",websearch,credit/distressed research,3,0
+"""prediction markets"" counsel OR policy OR regulatory",websearch,prediction markets / crypto,0,1
+"stablecoin ""regulatory counsel"" OR ""policy counsel""",websearch,prediction markets / crypto,1,0
+"site:hirelegalops.com ""legal engineer"" OR ""legal product"" OR ""innovation counsel""",websearch,legal-ops boards,0,1
+"site:legaloperationsjobboard.com ""legal engineer"" OR ""legal product""",websearch,legal-ops boards,0,1
+"""legal engineer"" OR ""legal product manager"" New York legal AI",websearch,legal-ops boards,,0
+"KBRA OR ""DBRS Morningstar"" OR ""AM Best"" ""legal analyst"" OR ""surveillance analyst""",websearch,credit/distressed research,,0
+"""claims trading"" analyst OR ""legal analyst"" bankruptcy claims",websearch,credit/distressed research,,0
+AlixPartners OR Ankura OR Stout restructuring analyst OR associate New York,websearch,credit/distressed research,,0
