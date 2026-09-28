@@ -9,10 +9,8 @@ Built 2026-09-28 from Wayback CDX captures since 2023-09. Capture dates are uppe
 | Debtwire (ION) | legal analyst / bankruptcy / LME / covenant | 4 | 1.3 | 6 months | check every 2 weeks |
 | Octus | legal analyst / bankruptcy / LME / covenant | 3 | 1.0 | 5 months | check every 2 weeks |
 | Point72 | research | 3 | 1.0 | 21 months | check monthly |
-| Octus (Reorg) | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
-| 9fin | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
 
-Failures: www.harvey.ai/company/careers/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused)
+Failures: boards.greenhouse.io/reorg/jobs/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused); jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused); jobs.ashbyhq.com/harvey/*: error: gave up after 4 attempts (ReadTimeout: The read operation timed out); www.harvey.ai/company/careers/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused)
 
 ### Point72: academy / analyst program
 
@@ -67,15 +65,3 @@ Failures: www.harvey.ai/company/careers/*: error: gave up after 4 attempts (Conn
 | [research analyst global macro](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=research-analyst-global-macro&jobCode=CSS-0012619&location=New%20York&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2025-12-17 |
 | [fundamental researcher market intelligence canvas](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=fundamental-researcher-market-intelligence-canvas&jobCode=IVS-0012829&location=Singapore&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2024-12-21 |
 | [fundamental research fellowship canvas](https://web.archive.org/web/20260921/https://careers.point72.com/CSJobDetail?retURL=%2FCSCareerSearch&jobName=fundamental-research-fellowship-canvas&jobCode=PMI-0015128&location=New+York&locale=English) | 2026-09-21 | 2026-09-21 |
-
-### Octus (Reorg): legal analyst / bankruptcy / LME / covenant
-
-| Title | First captured | Last captured |
-|---|---|---|
-| [Legal Analyst](https://web.archive.org/web/20231011/https://boards.greenhouse.io/reorg/jobs/4097177007) | 2023-10-11 | 2024-07-22 |
-
-### 9fin: legal analyst / bankruptcy / LME / covenant
-
-| Title | First captured | Last captured |
-|---|---|---|
-| [Senior Covenant Lawyer - Distressed](https://web.archive.org/web/20250709/https://jobs.ashbyhq.com/9fin/3c947b2d-1fc7-4de1-a877-ada222887ab3) | 2025-07-09 | 2025-08-14 |
