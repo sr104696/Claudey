@@ -25,7 +25,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - run: python -m compileall -q radar && python -m pytest -q
+
   refresh:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 240
     env:
@@ -97,6 +110,7 @@ jobs:
         if: always() && hashFiles('out/run_log.md') != ''
         run: |
           git add out/ data/snapshots/ seeds/companies.csv
+          git add -A data/judgments/  # new batches for Claude to judge; results applied this run drop out
           for f in data/leads.jsonl data/judgments.jsonl data/cc_boards.json data/discovered_boards.csv data/source_health.csv; do
             [ -f "$f" ] && git add "$f"
           done

@@ -35,6 +35,7 @@ re-scores, summarizes the diff and commits the outputs.
 | `out/jobs.csv` | every kept posting with every field, including the long tail not shown in the markdown (`bucket=low`) |
 | `out/diff_<date>.md` | new, closed, and pay or requirement changes since the last run |
 | `out/run_log.md` | starts with the **Silence check** (sources that crashed, went quiet or were skipped), then per-channel counts, blocks, failures, every request |
+| `out/all_positions.md` | every posting seen across all runs, deduplicated: open fits (ranked), near misses, past fits not confirmed this run, outside NYC, poor matches |
 | `out/near_miss_<date>.md` | up to 12 poor-match rows closest to the fit line, for a quick fit / right-call review that tunes the rubric |
 | `out/alumni_leads.md` | alumni-board jobs from your alert emails that couldn't be matched on an employer site |
 | `out/recurrence.md` | how often the watched seats reopen (Wayback Machine) |
@@ -66,8 +67,10 @@ unless you add one. Those runs can't make the Claude judgment calls, so run `/re
 | `seeds/current_list.md` | the hand-built list the radar started from |
 | `seeds/companies.csv` | employer registry with detected ATS and slugs |
 | `seeds/watchlist.csv` | closed roles to re-check and aggregator rows to resolve to employer pages |
-| `out/` | dated outputs, `jobs.csv`, diffs and the run log |
-| `data/` | `leads.jsonl`, `judgments.jsonl`, `snapshots/<date>.csv` (drives diffs and †), Common Crawl sweep state (`cc_boards.json`, `discovered_boards.csv`); the SQLite file is local only |
+| `tests/` | offline pytest suite; CI runs it before every refresh |
+| `out/` | `all_positions.md`, `jobs.csv`, the run log, and dated outputs for the last 4 runs (older ones are in git history) |
+| `data/` | `leads.jsonl`, `judgments.jsonl`, `snapshots/<date>.csv` (drives diffs, † and `all_positions.md`), `websearch/` (web-search leads), `judgments/pending|results/` (batches for offline judging), Common Crawl sweep state (`cc_boards.json`, `discovered_boards.csv`); the SQLite file is local only |
+| `docs/` | `ROADMAP.md` (next work), `DECISIONS.md` (Seth's rulings, sources in and out, review outcomes), `LOVABLE.md` (dashboard) |
 
 ## Alumni boards (Penn Carey Law 12twenty, Penn Handshake)
 

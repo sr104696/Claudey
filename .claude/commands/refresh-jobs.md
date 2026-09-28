@@ -10,7 +10,7 @@ Refresh the job radar and report what changed. Follow CLAUDE.md (rubric and site
 2. **Web-search discovery.** Replay the queries in `seeds/search_queries.csv` with WebSearch. For every result that
    shows a specific posting (title and company visible; skip LinkedIn, Indeed and Glassdoor), write one JSON line
    `{"source": "websearch:<domain>", "url": ..., "company": ..., "title": ..., "location": ..., "note": "<query>"}`
-   to `data/websearch_leads_<today>.jsonl`, then run `python -m radar import-leads data/websearch_leads_<today>.jsonl`.
+   to `data/websearch/leads_<today>.jsonl`, then run `python -m radar import-leads data/websearch/leads_<today>.jsonl`.
    Don't open result pages; the radar verifies every lead itself.
    Then maintain the query file: set `results_used` for each query; increment `zero_runs` when it yielded nothing,
    reset it to 0 when it yielded something. Remove queries with `zero_runs` >= 2, and for each bucket whose queries
@@ -27,6 +27,10 @@ Refresh the job radar and report what changed. Follow CLAUDE.md (rubric and site
    when the posting's own words show the row's pattern-based exclusion misfired, e.g. "this is not a commission role"
    or "statistics a plus" read as required), rationale` (one line quoting the posting).
    Then run `python -m radar apply-judgments` and `PYTHONIOENCODING=utf-8 python -m radar score`.
+
+   **Judge-only path** (no network, e.g. after a GitHub Actions run): the Actions run commits its batches to
+   `data/judgments/pending/`. Pull, judge them as above, write `data/judgments/results/`, and commit the results.
+   Skip `apply-judgments` and `score`: the next run applies committed results before scoring.
 
 5. **Summarize** for the user: start with the run log's **Silence check** (any source that crashed, went quiet,
    degraded or was skipped, and what that means for coverage). Then, from `out/diff_<today>.md` and the summary JSON:
