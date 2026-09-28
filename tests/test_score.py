@@ -79,3 +79,10 @@ def test_contract_platform_and_non_seat_listings_are_poor():
     assert p.bucket == "poor" and "Contract-lawyer platform" in p.poor_reason
     p = score.score(posting(company="Point72", title="Point72 Academy Coffee Chats — Class of 2029 (US)"))
     assert p.bucket == "poor" and "not a seat" in p.poor_reason
+
+
+def test_academy_family_needs_finance_context():
+    assert score.seat_family(posting(company="BAYADA Home Health Care", title="RBT Academy (Clinic Based)",
+                                     body="Become a registered behavior technician. Paid training.")) == ""
+    assert score.seat_family(posting(company="Point72", title="Point72 Academy Investment Analyst Program",
+                                     body="Learn fundamental investing on the buy side.")) == "employer-run finance academy"

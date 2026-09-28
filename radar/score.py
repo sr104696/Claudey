@@ -129,7 +129,9 @@ SEAT_FAMILIES = [  # CLAUDE.md: the seat families that loosen the Stage 2 domain
     ("litigation-finance underwriting", r"underwrit", r"litigation_finance|legal assets|litigation financ"),
     ("legal-AI research/build seat", r"applied legal research|legal research|legal engineer|r&d attorney|legal fellow", r"legal_ai|legal ai|\bai\b"),
     ("business-side regulatory risk", r"regulatory (risk|exam|engagement|relations)|regulatory risk", r""),
-    ("employer-run finance academy", r"academy|rotational|investment analyst program|client investment research", r""),
+    # context required: "RBT Academy" (behavior technicians) and "Rotational Project Associate" (construction) matched before
+    ("employer-run finance academy", r"academy|rotational|investment analyst program|client investment research",
+     r"invest|financ|fund|trading|capital markets|hedge|asset manage|portfolio"),
     ("embedded qualitative research", r"fundamental research|market intelligence|\bcanvas\b", r""),
 ]
 
