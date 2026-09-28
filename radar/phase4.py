@@ -242,7 +242,7 @@ def run(verify_leads: bool = True) -> tuple[list[Posting], dict]:
 
             p.key = url_key(p.url)
         if p.locations:  # recompute with current rules; stored rows may predate a fix
-            p.loc_bucket = best_bucket(p.locations, remote_flag=(p.workplace == "remote") or None)
+            p.loc_bucket = best_bucket(p.locations, remote_flag=(p.workplace == "remote") or None, country=p.country)
         p.relevant, p.relevance_reason = relevance(p.title, p.description, p.segment)
         if "seed" in p.sources:
             p.relevant = True

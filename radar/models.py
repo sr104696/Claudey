@@ -20,6 +20,7 @@ class Posting(BaseModel):
     locations: list[str] = Field(default_factory=list)
     workplace: str = ""  # remote | hybrid | onsite | ""
     loc_bucket: str = "unknown"  # nyc | nyc_commutable | us_remote | us_other | non_us | unknown
+    country: str | None = None  # ATS-reported country, kept so loc_bucket can be recomputed without location text
 
     pay_min: float | None = None
     pay_max: float | None = None

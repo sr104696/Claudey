@@ -50,6 +50,14 @@ def current_channel() -> str:
 
 RETRY_STATUSES = {429, 500, 502, 503, 504, 520, 522, 524}
 CACHEABLE_STATUSES = {200, 203, 204, 301, 302, 303, 307, 308, 404, 410}
+# a cached 404/410 could make verify report a live job as closed; only robots.txt "missing" answers are cached
+NEGATIVE_STATUSES = {404, 410}
+
+
+def _cacheable(url: str, status: int | None) -> bool:
+    if status in NEGATIVE_STATUSES:
+        return urlsplit(url).path.endswith("/robots.txt")
+    return status in CACHEABLE_STATUSES
 
 
 class _Retryable(Exception):
@@ -225,7 +233,7 @@ class PoliteClient:
             d = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
-        if time.time() - d.get("fetched_at", 0) > self.ttl:
+        if time.time() - d.get("fetched_at", 0) > self.ttl or not _cacheable(d.get("url", ""), d.get("status")):
             return None
         return Result(
             url=d["url"],
@@ -238,7 +246,7 @@ class PoliteClient:
         )
 
     def _cache_put(self, path: Path, res: Result) -> None:
-        if res.status not in CACHEABLE_STATUSES:
+        if not _cacheable(res.url, res.status):
             return
         path.parent.mkdir(parents=True, exist_ok=True)
         keep = {k: v for k, v in res.headers.items() if k in ("content-type", "location", "last-modified", "etag")}

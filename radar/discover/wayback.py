@@ -71,7 +71,11 @@ def run() -> dict:
         if not r.ok:
             failures.append(f"{pattern}: {r.describe()}")
             continue
-        rows = r.json()[1:] if r.text.strip() else []
+        try:
+            rows = r.json()[1:] if r.text.strip() else []
+        except ValueError:  # an HTML 200 (rate-limit or error page) instead of CDX JSON
+            failures.append(f"{pattern}: CDX response was not JSON ({r.headers.get('content-type', '?')})")
+            continue
         for ts, orig in rows:
             if re.search(r"/application|/apply|\.(css|js|png)|embed", orig):
                 continue
