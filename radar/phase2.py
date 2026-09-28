@@ -167,6 +167,8 @@ def detect(row: dict) -> tuple[str, str, str]:
                     return ats, hslug, f"registry slug confirmed ({n} jobs)"
     for cand in [c for c in hslug.split(";") if c]:
         if "|" in cand:
+            if not hint.startswith("workday"):
+                continue  # Oracle/Eightfold tenants recorded for adapters that don't exist yet, not Workday specs
             spec = workday.spec_from_slug(cand)
             st, jobs = workday.list_jobs(spec, max_pages=1) if spec else ("bad spec", [])
             if st == "ok" and jobs:

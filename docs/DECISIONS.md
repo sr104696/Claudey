@@ -26,10 +26,10 @@ Robots and terms were read from the live files on the dates shown. Re-check befo
 
 | Source | Status | Evidence |
 |---|---|---|
-| Arbeitnow API | **In** (feeds.csv) | robots.txt allows all except `/*?__hstc` (2026-09-27). Mostly European listings; the yield rule retires it if it finds nothing. |
+| Arbeitnow API | **In** (feeds.csv) | robots.txt allows all except `/*?__hstc` (2026-09-27). Mostly European listings: 0 of 325 kept on its first run (2026-09-28); the yield rule retires it if that holds. |
 | Himalayas `/jobs/api` | **In** | robots.txt allows `/`; only `?page=` variants disallowed (2026-09-27) |
 | Jobicy `/api/v2/remote-jobs` | **In** | `/job-listings/`, `/search/` and `/feed` are disallowed, `/api/` is not; `Content-Signal: ai-input=yes` (2026-09-27) |
-| findwork.dev API | **In, unconfirmed** | robots.txt allows all (2026-09-27); the API may need a key, in which case the feed logs a failure and retires |
+| findwork.dev API | **Out for now** | robots.txt allows all (2026-09-27), but the API returned HTTP 401 on 2026-09-28: it needs a key. Re-add with a key in `.env` if wanted. |
 | HireLegalOps `jobs.json` | **In** | robots.txt welcomes the feed (Kimi review, live) |
 | eFinancialCareers | **Hold** | `/search`, `/v1`, `/v3` disallowed; job sitemaps allowed; `crawl-delay: 10`. Terms of use not yet read. |
 | PRMIA | **Hold** | robots.txt allows; the job board's address is unknown |
