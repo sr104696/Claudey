@@ -118,10 +118,11 @@ def _company(r: dict) -> str:
     return _esc(r.get("company")) + (" (already in your pipeline)" if str(r.get("pipeline")) in ("True", "1") else "")
 
 
-def build() -> tuple[str, dict]:
+def sections() -> dict | None:
+    """Every section of the combined list, computed once for the Markdown and any other rendering."""
     snaps = sorted(SNAP_DIR.glob("*.csv"))
     if not snaps:
-        return "", {}
+        return None
     runs: list[tuple[str, list[dict]]] = []
     for p in snaps:
         with open(p, newline="", encoding="utf-8") as f:
@@ -151,6 +152,17 @@ def build() -> tuple[str, dict]:
     poor = [r for r in latest if r["bucket"] == "poor"]
     gone = [e for k, e in seen.items() if k not in current and e["row"].get("bucket") == "fit" and not settled_out(e["row"])]
     gone.sort(key=lambda e: (e["last"], e["row"].get("company", "")), reverse=True)
+    return dict(runs=runs, latest_date=latest_date, seen=seen, fits=fits, not_seats=not_seats, dropped=dropped,
+                near=near, outside=outside, poor=poor, gone=gone)
+
+
+def build() -> tuple[str, dict]:
+    S = sections()
+    if not S:
+        return "", {}
+    runs, latest_date, seen = S["runs"], S["latest_date"], S["seen"]
+    fits, not_seats, dropped, near = S["fits"], S["not_seats"], S["dropped"], S["near"]
+    outside, poor, gone = S["outside"], S["poor"], S["gone"]
 
     L = ["# All positions", "",
          f"Every posting the radar has seen across {len(runs)} runs ({ap_date(runs[0][0])} to {ap_date(latest_date)}), "
