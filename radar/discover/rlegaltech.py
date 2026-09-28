@@ -111,7 +111,7 @@ def _parse(html: str) -> list[Lead]:
         ok, why = relevance(title, "")
         if not ok or (loc and not keep_location(loc)):
             continue
-        leads.append(Lead(source="discover:rlegaltech", url=url, company=company, title=title,
+        leads.append(Lead(source="rlegaltech", url=url, company=company, title=title,
                           location=loc, note=f"rlegaltech legal directory; {why}"))
     return leads
 

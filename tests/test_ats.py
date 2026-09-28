@@ -193,3 +193,23 @@ def test_rlegaltech_run_records_channel(monkeypatch):
     monkeypatch.setattr(rlegaltech, "add_leads", lambda leads: seen.extend(leads))
     out = rlegaltech.run()
     assert out["leads"] == 1 and len(seen) == 1
+
+
+def test_rlegaltech_lead_source_matches_channel_naming_convention():
+    # Lead.source must follow the "<label>[:<sub>]" convention every other discover channel uses
+    # (not prefixed with "discover:" itself) -- phase4 keys stats on source.split(":")[0], and
+    # pipeline.finish() matches that back to the "discover:<channel>" name via str.endswith. A
+    # source of "discover:rlegaltech" broke that match and misfiled the channel's stats.
+    from radar.discover import rlegaltech
+
+    html = """
+    <h3>Harvey</h3><span>1 open</span>
+    <ul><li><h4>Senior Public Sector Counsel</h4>
+    <div>Remote (United States) Remote Full time</div>
+    <a href="https://jobs.ashbyhq.com/harvey/8bec95c8-b625-49e9-bd82-c8eb83e170ee/application">Apply</a>
+    </li></ul>
+    """
+    leads = rlegaltech._parse(html)
+    assert leads and leads[0].source == "rlegaltech"
+    channel_name = "discover:rlegaltech"
+    assert channel_name.endswith(leads[0].source.split(":")[0])
