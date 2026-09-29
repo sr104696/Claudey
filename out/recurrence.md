@@ -1,16 +1,16 @@
 # Seat recurrence (Wayback Machine)
 
-Built 2026-09-28 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
+Built 2026-09-29 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
 
 | Employer | Seat family | Openings found | Per year | Median gap | Watch |
 |---|---|---:|---:|---|---|
 | Point72 | academy / analyst program | 14 | 4.7 | 3 months | check weekly |
-| Burford | underwriting | 5 | 1.7 | 11 months | check monthly |
 | Debtwire (ION) | legal analyst / bankruptcy / LME / covenant | 4 | 1.3 | 6 months | check every 2 weeks |
 | Octus | legal analyst / bankruptcy / LME / covenant | 3 | 1.0 | 5 months | check every 2 weeks |
 | Point72 | research | 3 | 1.0 | 21 months | check monthly |
+| Octus (Reorg) | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
 
-Failures: boards.greenhouse.io/reorg/jobs/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused); jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused); jobs.ashbyhq.com/harvey/*: error: gave up after 4 attempts (ReadTimeout: The read operation timed out); www.harvey.ai/company/careers/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused)
+Failures: jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused); careers.burfordcapital.com/job/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused)
 
 ### Point72: academy / analyst program
 
@@ -30,16 +30,6 @@ Failures: boards.greenhouse.io/reorg/jobs/*: error: gave up after 4 attempts (Co
 | [academy instructor and talent acquisition liaison](https://web.archive.org/web/20260812/https://careers.point72.com/CSJobDetail?jobName=academy-instructor-and-talent-acquisition-liaison&jobCode=IVS-0004675&retURL=%2FCSCareerSearch) | 2026-08-12 | 2026-08-12 |
 | [programming coding academy instructor](https://web.archive.org/web/20260812/https://careers.point72.com/CSJobDetail?jobName=programming-coding-academy-instructor&jobCode=IVS-0004863&retURL=%2FCSCareerSearch) | 2026-08-12 | 2026-08-12 |
 | [2026 point72 academy national case competition us](https://web.archive.org/web/20260819/https://careers.point72.com/CSJobDetail?jobCode=CPC-0015213&location=New+York&locale=English&retURL=%2FCSCareerSearch&jobName=2026-point72-academy-national-case-competition-us) | 2026-08-19 | 2026-08-19 |
-
-### Burford: underwriting
-
-| Title | First captured | Last captured |
-|---|---|---|
-| [New York Vice President, US Commercial Underwriter NY 10017](https://web.archive.org/web/20241113/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-US-Commercial-Underwriter-NY-10017/1213941100/) | 2024-11-13 | 2024-11-13 |
-| [Chicago Vice President, Patent Underwriting IL 60654](https://web.archive.org/web/20260419/https://careers.burfordcapital.com/job/Chicago-Vice-President%2C-Patent-Underwriting-IL-60654/1331845700/) | 2026-04-19 | 2026-04-19 |
-| [New York Vice President, Commercial Underwriting NY 10017](https://web.archive.org/web/20260419/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-Commercial-Underwriting-NY-10017/1331385600/) | 2026-04-19 | 2026-04-19 |
-| [New York Underwriting Paralegal NY 10017](https://web.archive.org/web/20260923/https://careers.burfordcapital.com/job/New-York-Underwriting-Paralegal-NY-10017/1420695800/) | 2026-09-23 | 2026-09-23 |
-| [New York Vice President, U S Commercial Underwriting NY 10017](https://web.archive.org/web/20260923/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-U_S_-Commercial-Underwriting-NY-10017/1331385600/) | 2026-09-23 | 2026-09-23 |
 
 ### Debtwire (ION): legal analyst / bankruptcy / LME / covenant
 
@@ -65,3 +55,9 @@ Failures: boards.greenhouse.io/reorg/jobs/*: error: gave up after 4 attempts (Co
 | [research analyst global macro](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=research-analyst-global-macro&jobCode=CSS-0012619&location=New%20York&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2025-12-17 |
 | [fundamental researcher market intelligence canvas](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=fundamental-researcher-market-intelligence-canvas&jobCode=IVS-0012829&location=Singapore&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2024-12-21 |
 | [fundamental research fellowship canvas](https://web.archive.org/web/20260921/https://careers.point72.com/CSJobDetail?retURL=%2FCSCareerSearch&jobName=fundamental-research-fellowship-canvas&jobCode=PMI-0015128&location=New+York&locale=English) | 2026-09-21 | 2026-09-21 |
+
+### Octus (Reorg): legal analyst / bankruptcy / LME / covenant
+
+| Title | First captured | Last captured |
+|---|---|---|
+| [Legal Analyst](https://web.archive.org/web/20231011/https://boards.greenhouse.io/reorg/jobs/4097177007) | 2023-10-11 | 2024-07-22 |

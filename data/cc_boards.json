@@ -35433,6 +35433,482 @@
 "jobs": 0,
 "relevant": 0,
 "last_error": "board not found"
+},
+"sevenroomsuae": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "sevenroomsuae"
+},
+"skylotechnologies": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"scm": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 29,
+"relevant": 0,
+"company": "scm"
+},
+"sitsgroup": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 16,
+"relevant": 0,
+"company": "sitsgroup"
+},
+"skupos": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"slingshotbiosciences": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 1,
+"relevant": 0,
+"company": "slingshotbiosciences"
+},
+"smebrazil": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 1,
+"relevant": 0,
+"company": "smebrazil"
+},
+"southshoreskin": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 5,
+"relevant": 0,
+"company": "southshoreskin"
+},
+"signifyhealth": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"somespiderstudios": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"shopfully": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 17,
+"relevant": 0,
+"company": "shopfully"
+},
+"skhynixamerica": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 53,
+"relevant": 1,
+"company": "SK hynix America"
+},
+"sendle": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"scout24": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 16,
+"relevant": 0,
+"company": "scout24"
+},
+"solsten": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sourcemeridian": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 3,
+"relevant": 0,
+"company": "sourcemeridian"
+},
+"silversky": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 3,
+"relevant": 0,
+"company": "silversky"
+},
+"sonymusicinternshipsus": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "sonymusicinternshipsus"
+},
+"sonymusiccanada": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 1,
+"relevant": 0,
+"company": "sonymusiccanada"
+},
+"sifthealthcare": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 3,
+"relevant": 0,
+"company": "sifthealthcare"
+},
+"slate": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"seoulrobotics": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 10,
+"relevant": 0,
+"company": "seoulrobotics"
+},
+"simplifygroup": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"servicetitan": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sidewalklabs": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"skout": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sironamedical": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 12,
+"relevant": 0,
+"company": "sironamedical"
+},
+"sensei": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 7,
+"relevant": 0,
+"company": "sensei"
+},
+"seed": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 3,
+"relevant": 0,
+"company": "seed"
+},
+"sonymusicde": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 2,
+"relevant": 0,
+"company": "sonymusicde"
+},
+"sofitechsolutions": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 6,
+"relevant": 0,
+"company": "sofitechsolutions"
+},
+"sourcingcour": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 13,
+"relevant": 0,
+"company": "sourcingcour"
+},
+"shednycinc": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 5,
+"relevant": 0,
+"company": "shednycinc"
+},
+"spaceium": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 10,
+"relevant": 0,
+"company": "spaceium"
+},
+"smartbiz": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"serinocoyne": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 1,
+"relevant": 0,
+"company": "serinocoyne"
+},
+"skinclique": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 62,
+"relevant": 0,
+"company": "skinclique"
+},
+"sourcegraph": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"smlxl": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sealed": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sociallab": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 4,
+"relevant": 0,
+"company": "sociallab"
+},
+"schneiderdowns": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 17,
+"relevant": 2,
+"company": "Schneider Downs"
+},
+"sonothera": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 3,
+"relevant": 0,
+"company": "sonothera"
+},
+"scope3pbc": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"snackpasspt": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"soroco": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "soroco"
+},
+"sirum": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 4,
+"relevant": 0,
+"company": "sirum"
+},
+"sorcero": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"skillshare": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"smaamerica": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 22,
+"relevant": 0,
+"company": "smaamerica"
+},
+"sonymusiccareersaustralia": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "sonymusiccareersaustralia"
+},
+"sdash": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sconley": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 5,
+"relevant": 0,
+"company": "sconley"
+},
+"silvr": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 1,
+"relevant": 0,
+"company": "silvr"
+},
+"securitycompass": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "securitycompass"
+},
+"h": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"shardeumfoundation": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sezzleinternships": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 17,
+"relevant": 0,
+"company": "sezzleinternships"
+},
+"socialpoint": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "socialpoint"
+},
+"serif": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 2,
+"relevant": 0,
+"company": "serif"
+},
+"shepherd": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 0,
+"relevant": 0,
+"company": "shepherd"
+},
+"simula": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 2,
+"relevant": 0,
+"company": "simula"
+},
+"sodahealth": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"scangroup": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 9,
+"relevant": 0,
+"company": "scangroup"
+},
+"skillsoft": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 12,
+"relevant": 0,
+"company": "skillsoft"
+},
+"smartfinancial": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
+},
+"sct": {
+"first_seen": "2026-09-29",
+"last_checked": "2026-09-29",
+"jobs": 5,
+"relevant": 0,
+"company": "sct"
+},
+"settle": {
+"first_seen": "2026-09-29",
+"last_checked": null,
+"jobs": 0,
+"relevant": 0,
+"last_error": "board not found"
 }
 },
 "lever": {

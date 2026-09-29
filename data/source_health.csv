@@ -241,3 +241,85 @@ run,source,kind,status,queried,candidates,verified,kept
 2026-09-28,board:Everlaw,board,ok,1,40,,1
 2026-09-28,board:DISCO,board,ok,1,35,,0
 2026-09-28,board:Clio,board,ok,1,129,,0
+2026-09-29,phase1:seed-verify,channel,ok,33,33,20,
+2026-09-29,discover:websearch,channel,ok,38,0,13,13
+2026-09-29,discover:rlegaltech,channel,ok,1,77,66,49
+2026-09-29,discover:hn,channel,ok,4,0,,
+2026-09-29,discover:feeds,channel,ok,4,25,23,14
+2026-09-29,discover:public_sector,channel,ok,11,21,21,21
+2026-09-29,discover:official_apis,channel,ok,46,99,3,3
+2026-09-29,discover:wayback,channel,failures,260,0,,
+2026-09-29,discover:commoncrawl,channel,failures,1126,3,2150,1809
+2026-09-29,phase2:boards,channel,ok,901,2498,2498,2159
+2026-09-29,board:Burford Capital,board,ok,1,2,,2
+2026-09-29,board:Omni Bridgeway,board,ok,1,6,,2
+2026-09-29,board:Legalist,board,ok,1,5,,0
+2026-09-29,board:Octus,board,ok,1,35,,4
+2026-09-29,board:9fin,board,ok,1,32,,1
+2026-09-29,board:Debtwire (ION Analytics),board,ok,1,90,,2
+2026-09-29,board:Fitch Group (LevFin Insights / CreditSights),board,ok,1,54,,40
+2026-09-29,board:PitchBook (LCD),board,ok,1,24,,0
+2026-09-29,board:S&P Global,board,ok,1,275,,2
+2026-09-29,board:Capstone DC,board,ok,1,15,,7
+2026-09-29,board:MLex,board,ok,1,787,,6
+2026-09-29,board:Point72,board,ok,1,17,,8
+2026-09-29,board:Bridgewater Associates,board,ok,1,15,,1
+2026-09-29,board:Jane Street,board,ok,1,229,,6
+2026-09-29,board:Apollo,board,ok,1,69,,0
+2026-09-29,board:Ares,board,ok,1,272,,3
+2026-09-29,board:Oaktree,board,ok,1,12,,0
+2026-09-29,board:Blackstone Credit,board,ok,1,171,,10
+2026-09-29,board:Guggenheim Investments,board,ok,1,20,,2
+2026-09-29,board:Capstone Investment Advisors,board,ok,1,15,,0
+2026-09-29,board:Weiss Asset Management,board,ok,1,5,,1
+2026-09-29,board:Hudson River Trading,board,ok,1,88,,0
+2026-09-29,board:Virtu,board,ok,1,50,,0
+2026-09-29,board:DRW,board,ok,1,166,,1
+2026-09-29,board:Optiver,board,ok,1,171,,0
+2026-09-29,board:IMC,board,ok,1,172,,4
+2026-09-29,board:Harvey,board,ok,1,295,,26
+2026-09-29,board:Legora,board,ok,1,275,,26
+2026-09-29,board:Norm AI,board,ok,1,19,,8
+2026-09-29,board:Hebbia,board,ok,1,20,,1
+2026-09-29,board:Eudia,board,ok,1,20,,2
+2026-09-29,board:Crosby,board,ok,1,18,,1
+2026-09-29,board:Thomson Reuters (CoCounsel),board,ok,1,447,,5
+2026-09-29,board:OpenAI,board,ok,1,833,,12
+2026-09-29,board:Anthropic,board,ok,1,632,,27
+2026-09-29,board:Mercor,board,ok,1,114,,0
+2026-09-29,board:Scale AI,board,ok,1,198,,3
+2026-09-29,board:Handshake AI,board,ok,1,5,,0
+2026-09-29,board:Snorkel,board,ok,1,38,,2
+2026-09-29,board:AlphaSense,board,ok,1,207,,1
+2026-09-29,board:Third Bridge,board,ok,1,128,,0
+2026-09-29,board:AlphaSights,board,ok,1,58,,1
+2026-09-29,board:Ramp,board,ok,1,155,,1
+2026-09-29,board:Plaid,board,ok,1,121,,2
+2026-09-29,board:Stripe,board,ok,1,711,,4
+2026-09-29,board:Affirm,board,ok,1,173,,3
+2026-09-29,board:Upstart,board,ok,1,88,,1
+2026-09-29,board:Pagaya,board,ok,1,15,,0
+2026-09-29,board:Zest AI,board,ok,1,1,,0
+2026-09-29,board:Rain,board,ok,1,45,,5
+2026-09-29,board:Plaid,board,ok,1,121,,2
+2026-09-29,board:Circle,board,ok,1,10,,0
+2026-09-29,board:Paxos,board,ok,1,14,,1
+2026-09-29,board:Gemini,board,ok,1,33,,1
+2026-09-29,board:Coinbase,board,ok,1,208,,7
+2026-09-29,board:Chainalysis,board,ok,1,51,,3
+2026-09-29,board:Fireblocks,board,ok,1,68,,3
+2026-09-29,board:Figure,board,ok,1,18,,3
+2026-09-29,board:Kalshi,board,ok,1,44,,3
+2026-09-29,board:Polymarket,board,ok,1,62,,8
+2026-09-29,board:CME,board,ok,1,51,,1
+2026-09-29,board:Nasdaq,board,ok,1,176,,4
+2026-09-29,board:Cboe,board,ok,1,92,,4
+2026-09-29,board:Mastercard,board,ok,1,1058,,7
+2026-09-29,board:Morgan Stanley,board,ok,1,1355,,22
+2026-09-29,board:Citi,board,ok,1,2000,,18
+2026-09-29,board:Tower Research Capital,board,ok,1,90,,0
+2026-09-29,board:Ironclad,board,ok,1,31,,1
+2026-09-29,board:Relativity,board,ok,1,330,,2
+2026-09-29,board:Everlaw,board,ok,1,40,,1
+2026-09-29,board:DISCO,board,ok,1,36,,0
+2026-09-29,board:Clio,board,ok,1,132,,0
