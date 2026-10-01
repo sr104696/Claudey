@@ -11,8 +11,9 @@ re-running a day gives the same answer). Presenting it as a fit covers every low
 the near-miss digest, or listed in the poor-match table, does not count as having seen it as a fit. A row that
 was only ever a near miss and is now a fit is therefore new again, which is exactly when Seth wants to hear.
 
-Identity is deliberately loose: the ATS job id, the URL, or company + title + posting text, whichever matches. A
-repost of the same req under a new job id has the same text, so it stays seen.
+Identity is deliberately loose: the ATS job id, the URL, company + title + posting text, or company + title + listed
+pay, whichever matches. A repost of the same req under a new job id has the same text and pay, so it stays seen. (Two
+different reqs with one title and one pay band at one company count as one choice.)
 """
 from __future__ import annotations
 
@@ -54,6 +55,9 @@ def identities(r: dict, text_hash: str = "", loose: bool = False) -> list[str]:
     name = f"{norm_company(r.get('company') or '')}|{norm_title(r.get('title') or '')}"
     if text_hash:
         out.append(f"name:{name}|{text_hash}")
+    pay = (r.get("pay_display") or "").strip()
+    if pay and pay != "Not listed":  # a repost under a new job id keeps its title and pay band (Brex re-lists per location)
+        out.append(f"rep:{name}|{pay}")
     if loose or (not text_hash and not r.get("job_id")):  # seed-list and page postings have no id: the name is all there is
         out.append(f"name:{name}")
     return out
@@ -62,7 +66,8 @@ def identities(r: dict, text_hash: str = "", loose: bool = False) -> list[str]:
 def posting_ids(p, loose: bool = False) -> list[str]:
     from .score import desc_hash
 
-    d = {"ats": p.ats, "board": p.board, "job_id": p.job_id, "url": p.url, "company": p.company, "title": p.title}
+    d = {"ats": p.ats, "board": p.board, "job_id": p.job_id, "url": p.url, "company": p.company, "title": p.title,
+         "pay_display": p.pay_display}
     return identities(d, desc_hash(p) if p.description else "", loose)
 
 

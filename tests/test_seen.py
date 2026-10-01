@@ -93,3 +93,17 @@ def test_record_decision_rejects_unknown_value(tmp_path):
 
     with pytest.raises(ValueError):
         seen.record_decision("x", "maybe", path=tmp_path / "d.csv")
+
+
+def test_repost_recognized_from_snapshot_history_by_title_and_pay(tmp_path):
+    # old snapshots carry no text hash; a repost under a new job id is still the same choice if title and pay match
+    _snap(tmp_path / "snaps", "2026-09-27", [_row("101", pay_display="$270K\u2013$335K base + equity")])
+    led = seen.Ledger.load("2026-09-29", tmp_path / "snaps", tmp_path / "out", tmp_path / "seen.jsonl")
+    same = posting(job_id="999", title="Counsel", body="Reworded posting text.")
+    same.pay_display = "$270K\u2013$335K base + equity"
+    assert led.seen(same, "fit")
+    other_pay = posting(job_id="998", title="Counsel", body="Reworded posting text.")
+    other_pay.pay_display = "$150K\u2013$180K base"
+    assert not led.seen(other_pay, "fit")
+    unlisted = posting(job_id="997", title="Counsel", body="Reworded posting text.")  # "Not listed" never counts as a match
+    assert not led.seen(unlisted, "fit")
