@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 from . import config
 from .filelock import locked
+from .http import redact_url
 
 
 def record_channel(
@@ -41,8 +42,11 @@ def load_channels() -> dict[str, dict]:
     if path.exists():
         for line in path.read_text(encoding="utf-8").split("\n"):
             if line.strip():
-                r = json.loads(line)
-                out[r["channel"]] = r  # last write per channel wins
+                try:
+                    r = json.loads(line)
+                    out[r["channel"]] = r  # last write per channel wins
+                except (ValueError, KeyError, TypeError):
+                    pass  # torn line from a killed channel process
     return out
 
 
@@ -97,7 +101,7 @@ def write_run_log(extra_sections: list[tuple[str, str]] | None = None) -> str:
     for n, f in chan_fails:
         lines.append(f"- **{n}**: {f}")
     for r in fails:
-        lines.append(f"- `{r['method']} {r['url']}` ({r['channel']}): {r['error']}")
+        lines.append(f"- `{r['method']} {redact_url(r['url'])}` ({r['channel']}): {redact_url(r['error'])}")
 
     for title, body in extra_sections or []:
         lines += ["", f"## {title}", "", body]
@@ -112,7 +116,7 @@ def write_run_log(extra_sections: list[tuple[str, str]] | None = None) -> str:
     lines += ["", "<details><summary>Every endpoint hit this run</summary>", "", "| Time | Channel | Method | URL | Status | Cache |", "|---|---|---|---|---|---|"]
     for r in sorted(http, key=lambda r: r["ts"]):
         st = r.get("status") if r.get("status") is not None else (r.get("blocked") or "error")
-        lines.append(f"| {r['ts'][11:]} | {r['channel']} | {r['method']} | {_md(r['url'])} | {st} | {'hit' if r.get('cache') else ''} |")
+        lines.append(f"| {r['ts'][11:]} | {r['channel']} | {r['method']} | {_md(redact_url(r['url']))} | {st} | {'hit' if r.get('cache') else ''} |")
     lines += ["", "</details>", ""]
     path = config.OUT / "run_log.md"
     path.write_text("\n".join(lines), encoding="utf-8")

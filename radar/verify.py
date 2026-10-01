@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit
 
+import httpx
+
 from .ats import ashby, greenhouse, html as htmlats, lever, nyag, workday
 from .http import client
 from .models import Posting
@@ -125,6 +127,9 @@ def verify_url(url: str, company: str, source: str = "verify") -> Outcome:
         return Outcome("open", p, p.status_evidence, "jsonld page")
     except RuntimeError as e:
         return Outcome("unverified", None, str(e), "error")
+    except (ValueError, KeyError, TypeError, httpx.HTTPError) as e:
+        # a 200 maintenance/HTML page makes an adapter's r.json() raise JSONDecodeError (a ValueError)
+        return Outcome("unverified", None, f"verification error: {type(e).__name__}: {e}", "error")
 
 
 # ------------------------------------------------------------------- board search

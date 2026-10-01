@@ -34,7 +34,8 @@ TARGETS = [  # employer, CDX url pattern, title source ("url" = title in the URL
     ("Harvey", "jobs.ashbyhq.com/harvey/*", "page"),
     ("Harvey", "www.harvey.ai/company/careers/*", "page"),
 ]
-MAX_PAGE_FETCHES = 250
+MAX_PAGE_FETCHES = 250  # total across all "page" targets; split evenly so early targets can't starve later ones
+CDX_LIMIT = 3000
 NOISE = r"intern|summer|externship|meet and greet|quant|developer|(?<!legal )engineer(?! legal)|reporter|campus|university|\bhk\b|\bjp\b|hong kong|singapore|london|tokyo|sydney|asia|europe|\buk\b|\bsg\b"
 REQUIRE = {"Debtwire (ION)": r"debtwire"}
 
@@ -62,30 +63,50 @@ def _title_from_page(html: str) -> str:
 def run() -> dict:
     since = (dt.date.today() - dt.timedelta(days=3 * 365)).strftime("%Y%m%d")
     openings: dict[tuple[str, str], dict[str, dict]] = defaultdict(dict)
-    queried, fetched, failures = 0, 0, []
+    queried, fetched, failures, truncated = 0, 0, [], []
+    cdx: list[tuple[str, str, str, list]] = []
+    cdx_failed = 0
     for employer, pattern, how in TARGETS:
         r = client().get("https://web.archive.org/cdx/search/cdx", params={
             "url": pattern, "output": "json", "fl": "timestamp,original", "filter": "statuscode:200",
-            "collapse": "urlkey", "from": since, "limit": 3000})
+            "collapse": "urlkey", "from": since, "limit": CDX_LIMIT})
         queried += 1
         if not r.ok:
             failures.append(f"{pattern}: {r.describe()}")
+            cdx_failed += 1
             continue
         try:
             rows = r.json()[1:] if r.text.strip() else []
         except ValueError:  # an HTML 200 (rate-limit or error page) instead of CDX JSON
             failures.append(f"{pattern}: CDX response was not JSON ({r.headers.get('content-type', '?')})")
+            cdx_failed += 1
             continue
+        if len(rows) >= CDX_LIMIT:
+            truncated.append(f"{pattern}: CDX limit {CDX_LIMIT} reached, older/later captures not listed")
+        cdx.append((employer, pattern, how, rows))
+
+    # one budget per page-target that has captures to read, so the first targets can't use it all up
+    n_page = sum(1 for _, _, how, rows in cdx if how == "page" and rows)
+    budget = MAX_PAGE_FETCHES // n_page if n_page else 0
+    for employer, pattern, how, rows in cdx:
+        used = fail_n = skipped_n = 0
+        first_fail = ""
         for ts, orig in rows:
             if re.search(r"/application|/apply|\.(css|js|png)|embed", orig):
                 continue
             title = _title_from_url(orig) if how == "url" else ""
             if how == "page":
-                if fetched >= MAX_PAGE_FETCHES:
+                if used >= budget:
+                    skipped_n += 1
                     continue
                 pr = client().get(f"https://web.archive.org/web/{ts}id_/{orig}")
+                used += 1
                 fetched += 1
-                title = _title_from_page(pr.text) if pr.ok else ""
+                if pr.ok:
+                    title = _title_from_page(pr.text)
+                else:  # includes a robots.txt block on web.archive.org
+                    fail_n += 1
+                    first_fail = first_fail or pr.describe()
             fam = _family(title)
             if re.search(NOISE, title, re.I) or (employer in REQUIRE and not re.search(REQUIRE[employer], title + orig, re.I)):
                 fam = None
@@ -94,6 +115,10 @@ def run() -> dict:
             key = re.sub(r"\W+", " ", title.lower()).strip()
             rec = openings[(employer, fam)].setdefault(key, {"title": title, "first": ts[:8], "last": ts[:8], "url": orig})
             rec["first"], rec["last"] = min(rec["first"], ts[:8]), max(rec["last"], ts[:8])
+        if fail_n:
+            failures.append(f"{pattern}: {fail_n} of {used} capture fetches failed (first: {first_fail})")
+        if skipped_n:
+            truncated.append(f"{pattern}: per-target page budget of {budget} reached, {skipped_n} captures not read")
 
     lines = ["# Seat recurrence (Wayback Machine)", "",
              f"Built {config.today()} from Wayback CDX captures since {since[:4]}-{since[4:6]}. Capture dates are upper bounds on "
@@ -116,9 +141,17 @@ def run() -> dict:
             detail.append(f"| [{v['title']}](https://web.archive.org/web/{f}/{v['url']}) | {f[:4]}-{f[4:6]}-{f[6:]} | {l[:4]}-{l[4:6]}-{l[6:]} |")
     if not openings:
         lines.append("| — | no matching archived postings found | 0 | | | |")
+    if truncated:
+        lines += ["", "Truncated, so counts are minimums: " + "; ".join(truncated)]
     if failures:
         lines += ["", "Failures: " + "; ".join(failures)]
-    (config.OUT / "recurrence.md").write_text("\n".join(lines + detail) + "\n", encoding="utf-8")
-    record_channel("discover:wayback", queried=queried + fetched, candidates=0, failures=failures,
-                   notes=f"recurrence report: out/recurrence.md ({len(openings)} employer/family series, {fetched} captures read)")
-    return {"series": summary, "cdx_queries": queried, "captures_read": fetched, "failures": failures}
+    all_failed = bool(TARGETS) and cdx_failed == len(TARGETS)
+    if not all_failed:  # an empty report would overwrite the last good one
+        (config.OUT / "recurrence.md").write_text("\n".join(lines + detail) + "\n", encoding="utf-8")
+    notes = (f"recurrence report: out/recurrence.md ({len(openings)} employer/family series, {fetched} captures read)"
+             if not all_failed else "every CDX query failed; out/recurrence.md left as it was")
+    if truncated:
+        notes += "; truncated: " + "; ".join(truncated)
+    record_channel("discover:wayback", queried=queried + fetched, candidates=0, failures=failures, notes=notes)
+    return {"series": summary, "cdx_queries": queried, "captures_read": fetched, "failures": failures,
+            "truncated": truncated, "report_written": not all_failed}

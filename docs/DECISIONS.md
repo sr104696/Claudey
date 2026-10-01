@@ -93,3 +93,5 @@ Declined, with evidence:
 Lever pagination: the Kimi review said boards truncate at 100; a later review showed `veeva` returning 916 jobs
 in one call. The adapter pages anyway and stops when a page adds nothing, so it's correct either way at the cost
 of one extra request per board of 100+ jobs.
+
+Removed the SerpAPI (Google Jobs) and USAJobs adapters from `radar/discover/official_apis.py` (2026-10): Google Jobs resells LinkedIn/Indeed/Glassdoor listings and government portals are out. The Muse and Adzuna remain.

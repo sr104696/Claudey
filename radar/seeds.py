@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import re
+import warnings
 from dataclasses import dataclass, field
 
 from . import config
@@ -51,16 +52,26 @@ def _cells(line: str) -> list[str]:
 def parse_current_list(path=config.SEED_LIST) -> tuple[list[SeedRow], list[ClosedSeed]]:
     rows: list[SeedRow] = []
     closed: list[ClosedSeed] = []
+    skipped: list[str] = []
     section = None
+    table_rows = 0  # link-bearing table rows seen anywhere, to tell "empty list" from "headings no longer recognised"
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.startswith("## "):
             h = line.lower()
             section = "fit" if "fit your profile" in h else "poor" if "poor match" in h else "closed" if "not open" in h else None
             continue
+        if line.startswith("|") and LINK.search(line):
+            table_rows += 1
+            if section is None:
+                warnings.warn(f"seeds: table row under an unrecognised heading is ignored: {line.strip()[:100]}", stacklevel=2)
         if section in ("fit", "poor") and line.startswith("|") and "[" in line:
             c = _cells(line)
             m = LINK.search(c[0])
             if not m:
+                continue
+            if len(c) < 4:
+                skipped.append(line.strip()[:120])
+                warnings.warn(f"seeds: skipping malformed row (needs title, company, location, pay): {line.strip()[:120]}", stacklevel=2)
                 continue
             rest = m.group("rest")
             rows.append(SeedRow(
@@ -74,6 +85,10 @@ def parse_current_list(path=config.SEED_LIST) -> tuple[list[SeedRow], list[Close
                 label = m.group("label")
                 company, _, title = label.partition(", ")
                 closed.append(ClosedSeed(company=company.strip(), title=title.strip(), reason=m.group("reason").strip()))
+    if table_rows and not rows:
+        raise ValueError(
+            f"{path}: found {table_rows} table row(s) with links but none under a recognised '## ' heading "
+            "(expected 'fit your profile' or 'poor match'); was a section renamed?")
     return rows, closed
 
 

@@ -42,10 +42,10 @@ SPECIAL = {
     "finra": ("channel", "public_sector", "covered by the public_sector discovery channel"),
     "parabellum capital": ("none", "", "no public job board (site checked 2026-09-27); web-search queries and team-page watch"),
     "elliott management": ("none", "", "no public job board (checked 2026-09-27); web-search queries only"),
-    "sec": ("channel", "official_apis", "USAJobs (needs an API key)"),
-    "cftc": ("channel", "official_apis", "USAJobs (needs an API key)"),
-    "occ": ("channel", "official_apis", "USAJobs (needs an API key)"),
-    "cfpb": ("channel", "official_apis", "USAJobs (needs an API key)"),
+    "sec": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
+    "cftc": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
+    "occ": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
+    "cfpb": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
 }
 
 ATS_LINK = [

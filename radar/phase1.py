@@ -94,68 +94,78 @@ def _resolve_entry(watch, company: str):
     return max(hits, key=lambda w: len(w.company), default=None)
 
 
+def _verify_row(row: SeedRow, watch) -> SeedResult:
+    resolve = _resolve_entry(watch, row.company)
+    res: SeedResult
+    if is_aggregator(row.url):
+        # seed rows sourced from aggregators: look for the employer's own posting first
+        found = []
+        if resolve and resolve.method != "none":
+            st, found = search_board(resolve.method, resolve.target, row.company, resolve.title_regex, source="seed")
+            found = [f for f in found if same_role(row.title, f.title)]
+        if found:
+            p = found[0]
+            host = row.url.split("/")[2]
+            if p.ats == "page":
+                # the employer page only lists the title; read the role details from the listing it points to
+                o2 = verify_url(row.url, row.company, source="seed")
+                if o2.posting:
+                    p = o2.posting.model_copy(update={
+                        "url": p.url, "via_aggregator": None, "location": o2.posting.location or p.location,
+                        "status_evidence": p.status_evidence + f"; role details read from the {host} listing ({o2.evidence})",
+                    })
+            res = SeedResult(row, "open", p.status_evidence + f" (seed linked to {host}; employer posting found)", p, p.url, method=resolve.method)
+        else:
+            o = verify_url(row.url, row.company, source="seed")
+            if o.posting:
+                o.posting.via_aggregator = row.url.split("/")[2]
+            why = f"Employer posting not found ({resolve.note if resolve else 'no employer board known'}); "
+            res = SeedResult(row, o.status, why + o.evidence + (" [aggregator page]" if o.status == "open" else ""), o.posting, row.url if o.posting else "", method=o.method)
+    else:
+        o = verify_url(row.url, row.company, source="seed")
+        res = SeedResult(row, o.status, o.evidence, o.posting, (o.posting.url if o.posting else ""), method=o.method)
+        if o.status == "closed":
+            # was it reposted under a new id on the same board?
+            rp, near = None, []
+            if resolve and resolve.method != "none":
+                st, found = search_board(resolve.method, resolve.target, row.company, resolve.title_regex, source="seed")
+                rp = next((f for f in found if same_role(row.title, f.title)), None)
+                near = [f for f in found if f is not rp]
+            elif b := _board_of(row.url):
+                rp = find_repost(row.title, row.company, b[0], b[1])
+            if rp:
+                res = SeedResult(row, "open", f"Original id closed; same role reposted: {rp.status_evidence}", rp, rp.url, method="repost")
+            elif near:
+                res.evidence += "; related opening on the employer's current board (different role, not counted): " + "; ".join(
+                    f"[{n.title}]({n.url}) ({n.location}, {n.pay_display})" for n in near[:3])
+        elif o.status == "unverified" and resolve and resolve.method != "none":
+            st, found = search_board(resolve.method, resolve.target, row.company, resolve.title_regex, source="seed")
+            found = [f for f in found if same_role(row.title, f.title)]
+            if found:
+                p = found[0]
+                res = SeedResult(row, "open", f"{o.evidence}; employer careers page still lists it: {p.status_evidence}", p, p.url, method=resolve.method)
+    if res.posting:
+        res.posting.company = row.company
+        if res.status == "open":
+            res.change = _compare(row, res.posting)
+            if res.url_now and res.url_now != row.url:
+                res.change = (f"link updated to {res.url_now}; " + res.change).strip("; ")
+            db.upsert_posting(res.posting)
+    return res
+
+
 def verify_seeds() -> tuple[list[SeedResult], list[ClosedResult]]:
     rows, closed = parse_current_list()
     watch = load_watchlist()
     results: list[SeedResult] = []
+    failures: list[str] = []
     with channel("phase1:seed-open"):
         for row in rows:
-            resolve = _resolve_entry(watch, row.company)
-            res: SeedResult
-            if is_aggregator(row.url):
-                # seed rows sourced from aggregators: look for the employer's own posting first
-                found = []
-                if resolve and resolve.method != "none":
-                    st, found = search_board(resolve.method, resolve.target, row.company, resolve.title_regex, source="seed")
-                    found = [f for f in found if same_role(row.title, f.title)]
-                if found:
-                    p = found[0]
-                    host = row.url.split("/")[2]
-                    if p.ats == "page":
-                        # the employer page only lists the title; read the role details from the listing it points to
-                        o2 = verify_url(row.url, row.company, source="seed")
-                        if o2.posting:
-                            p = o2.posting.model_copy(update={
-                                "url": p.url, "via_aggregator": None, "location": o2.posting.location or p.location,
-                                "status_evidence": p.status_evidence + f"; role details read from the {host} listing ({o2.evidence})",
-                            })
-                    res = SeedResult(row, "open", p.status_evidence + f" (seed linked to {host}; employer posting found)", p, p.url, method=resolve.method)
-                else:
-                    o = verify_url(row.url, row.company, source="seed")
-                    if o.posting:
-                        o.posting.via_aggregator = row.url.split("/")[2]
-                    why = f"Employer posting not found ({resolve.note if resolve else 'no employer board known'}); "
-                    res = SeedResult(row, o.status, why + o.evidence + (" [aggregator page]" if o.status == "open" else ""), o.posting, row.url if o.posting else "", method=o.method)
-            else:
-                o = verify_url(row.url, row.company, source="seed")
-                res = SeedResult(row, o.status, o.evidence, o.posting, (o.posting.url if o.posting else ""), method=o.method)
-                if o.status == "closed":
-                    # was it reposted under a new id on the same board?
-                    rp, near = None, []
-                    if resolve and resolve.method != "none":
-                        st, found = search_board(resolve.method, resolve.target, row.company, resolve.title_regex, source="seed")
-                        rp = next((f for f in found if same_role(row.title, f.title)), None)
-                        near = [f for f in found if f is not rp]
-                    elif b := _board_of(row.url):
-                        rp = find_repost(row.title, row.company, b[0], b[1])
-                    if rp:
-                        res = SeedResult(row, "open", f"Original id closed; same role reposted: {rp.status_evidence}", rp, rp.url, method="repost")
-                    elif near:
-                        res.evidence += "; related opening on the employer's current board (different role, not counted): " + "; ".join(
-                            f"[{n.title}]({n.url}) ({n.location}, {n.pay_display})" for n in near[:3])
-                elif o.status == "unverified" and resolve and resolve.method != "none":
-                    st, found = search_board(resolve.method, resolve.target, row.company, resolve.title_regex, source="seed")
-                    found = [f for f in found if same_role(row.title, f.title)]
-                    if found:
-                        p = found[0]
-                        res = SeedResult(row, "open", f"{o.evidence}; employer careers page still lists it: {p.status_evidence}", p, p.url, method=resolve.method)
-            if res.posting:
-                res.posting.company = row.company
-                if res.status == "open":
-                    res.change = _compare(row, res.posting)
-                    if res.url_now and res.url_now != row.url:
-                        res.change = (f"link updated to {res.url_now}; " + res.change).strip("; ")
-                    db.upsert_posting(res.posting)
+            try:
+                res = _verify_row(row, watch)
+            except Exception as e:  # one bad row (parser bug, odd JSON) must not kill the other rows or the refresh
+                res = SeedResult(row, "unverified", f"verification crashed: {type(e).__name__}: {e}", method="error")
+                failures.append(f"{row.company}, {row.title}: {type(e).__name__}: {e}")
             results.append(res)
 
     closed_results: list[ClosedResult] = []
@@ -165,7 +175,12 @@ def verify_seeds() -> tuple[list[SeedResult], list[ClosedResult]]:
             if not w or w.method == "none":
                 closed_results.append(ClosedResult(f"{c.company}, {c.title}", "unverified", (w.note if w else "no board to check") + "; nothing to fetch", []))
                 continue
-            st, found = search_board(w.method, w.target, w.company, w.title_regex, w.location_regex, source="seed-closed")
+            try:
+                st, found = search_board(w.method, w.target, w.company, w.title_regex, w.location_regex, source="seed-closed")
+            except Exception as e:  # same isolation as the open rows
+                closed_results.append(ClosedResult(f"{c.company}, {c.title}", "unverified", f"board check crashed: {type(e).__name__}: {e}", []))
+                failures.append(f"{c.company}, {c.title}: {type(e).__name__}: {e}")
+                continue
             if st != "ok" and not found:
                 closed_results.append(ClosedResult(f"{c.company}, {c.title}", "unverified", f"{w.method} {w.target}: {st}", []))
             elif found:
@@ -179,6 +194,7 @@ def verify_seeds() -> tuple[list[SeedResult], list[ClosedResult]]:
     record_channel(
         "phase1:seed-verify", queried=len(rows) + len(closed), candidates=len(rows) + len(closed),
         verified_open=sum(r.status == "open" for r in results) + sum(len(c.postings) for c in closed_results),
+        failures=failures,
         notes=f"{sum(r.status == 'closed' for r in results)} seed rows closed, "
               f"{sum(r.status == 'unverified' for r in results)} unverifiable",
     )

@@ -14,6 +14,7 @@ from __future__ import annotations
 import email
 import html as htmllib
 import re
+import warnings
 from email import policy
 from pathlib import Path
 
@@ -24,7 +25,13 @@ from .models import Lead
 INBOX = config.DATA / "inbox"
 BOARD_HOSTS = {"12twenty.com": "alumni:12twenty", "joinhandshake.com": "alumni:handshake"}
 _A = re.compile(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', re.S | re.I)
-_NOT_JOB = re.compile(r"unsubscribe|preferences|privacy|view (in|all)|log ?in|sign ?in|help|terms|manage|settings|see more", re.I)
+# UI links, not jobs. "manage" and "help" only count as UI phrases: bare substrings would drop real titles
+# ("Credit Risk Manager", "Legal Operations Management", "Helpdesk Counsel").
+_NOT_JOB = re.compile(
+    r"unsubscribe|preferences|privacy|view (in|all)|log ?in|sign ?in|terms|settings|see more"
+    r"|\bmanage (your )?(alerts?|preferences|subscriptions?|notifications?|account|email)\b"
+    r"|\bhelp (center|centre)\b|^help$|\b(need|get) help\b",
+    re.I)
 
 
 def _html_of(path: Path) -> str:
@@ -63,8 +70,14 @@ def parse(path: Path) -> list[Lead]:
 def import_inbox() -> dict:
     INBOX.mkdir(parents=True, exist_ok=True)
     files = [p for p in INBOX.iterdir() if p.suffix.lower() in (".eml", ".html", ".htm", ".txt")]
-    leads = [l for f in files for l in parse(f)]
-    return {"files": len(files), "leads_found": len(leads), "leads_added": add_leads(leads)}
+    leads, skipped = [], []
+    for f in files:
+        try:
+            leads.extend(parse(f))
+        except Exception as e:  # one malformed .eml must not abort the whole import
+            skipped.append(f.name)
+            warnings.warn(f"import-inbox: skipped {f.name}: {type(e).__name__}: {e}", stacklevel=2)
+    return {"files": len(files), "leads_found": len(leads), "leads_added": add_leads(leads), "files_skipped": skipped}
 
 
 def write_unresolved(unresolved: list[dict]) -> str:

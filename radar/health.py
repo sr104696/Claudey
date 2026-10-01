@@ -7,8 +7,12 @@ yield per run in data/source_health.csv and compares against the previous run:
 
   crashed      a discovery channel process exited non-zero
   not run      an expected channel left no record this run
-  went quiet   a source that produced candidates/jobs last run produced zero now
-  degraded     a board whose status was "ok" last run isn't now
+  went quiet   a source that produced candidates/jobs in its last healthy run produces zero now
+  degraded     a board whose status was "ok" in its last healthy run isn't now
+
+Both alarms compare against the most recent earlier run in which the source was healthy, not just the
+previous run, so a source that stays dead keeps alerting (with a count of consecutive bad runs)
+instead of alerting once and going quiet itself.
   skipped      a channel reported a skip (missing key, block)
 
 Alerts go to the top of out/run_log.md and into the refresh summary.
@@ -48,6 +52,47 @@ def _rows_now(codes: dict[str, int] | None) -> list[dict]:
     return rows
 
 
+def _cands(r: dict) -> int:
+    try:
+        return int(r.get("candidates") or 0)
+    except ValueError:
+        return 0
+
+
+def _streak(hist: list[dict], baseline: dict) -> int:
+    """Consecutive runs, this one included, since the source was last healthy (hist is oldest first)."""
+    return 1 + sum(1 for r in hist if r["run"] > baseline["run"])
+
+
+def silence_alerts(old: list[dict], now: list[dict]) -> list[str]:
+    """Quiet/degraded alerts for `now` rows against the per-source history in `old` (earlier runs only)."""
+    by_source: dict[str, list[dict]] = {}
+    for r in sorted(old, key=lambda r: r["run"]):
+        by_source.setdefault(r["source"], []).append(r)
+    alerts = []
+    for r in now:
+        hist = by_source.get(r["source"], [])
+        if r["status"] == "crashed":
+            alerts.append(f"**crashed**: `{r['source']}` exited with an error; it contributed nothing this run")
+            continue
+        if _cands(r) == 0:
+            base = next((h for h in reversed(hist) if _cands(h) > 0), None)
+            if base:
+                n = _streak(hist, base)
+                tail = f" (quiet for {n} consecutive runs)" if n > 1 else ""
+                when = "last run" if n == 1 else "in its last productive run"
+                alerts.append(f"**went quiet**: `{r['source']}` had {base['candidates']} {when} ({base['run']}) and 0 now{tail}")
+                continue
+        if r["status"] != "ok":
+            base = next((h for h in reversed(hist) if h["status"] == "ok"), None)
+            if base:
+                n = _streak(hist, base)
+                tail = f" ({n} consecutive runs not ok)" if n > 1 else ""
+                when = "last run" if n == 1 else f"in its last healthy run ({base['run']})"
+                alerts.append(f"**degraded**: `{r['source']}` was ok {when}, now `{r['status']}`{tail}")
+    return alerts
+
+
 def record(codes: dict[str, int] | None = None, expected_channels: list[str] | None = None) -> list[str]:
     """Append this run's rows (replacing any earlier rows for the same run) and return alert lines."""
     run = config.today()
@@ -61,18 +106,8 @@ def record(codes: dict[str, int] | None = None, expected_channels: list[str] | N
         w.writeheader()
         w.writerows(old + now)
 
-    prev_run = max((r["run"] for r in old), default=None)
-    prev = {r["source"]: r for r in old if r["run"] == prev_run}
     cur = {r["source"]: r for r in now}
-    alerts = []
-    for r in now:
-        p = prev.get(r["source"])
-        if r["status"] == "crashed":
-            alerts.append(f"**crashed**: `{r['source']}` exited with an error; it contributed nothing this run")
-        elif p and int(p["candidates"] or 0) > 0 and int(r["candidates"] or 0) == 0:
-            alerts.append(f"**went quiet**: `{r['source']}` had {p['candidates']} last run ({prev_run}) and 0 now")
-        elif p and p["status"] == "ok" and r["status"] != "ok":
-            alerts.append(f"**degraded**: `{r['source']}` was ok last run, now `{r['status']}`")
+    alerts = silence_alerts(old, now)
     for ch in expected_channels or []:
         if f"discover:{ch}" not in cur:
             alerts.append(f"**not run**: channel `{ch}` left no record this run")

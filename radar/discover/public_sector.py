@@ -99,6 +99,8 @@ def _workday_portal(name: str, careers: str, stats) -> list[Lead]:
         stats["skipped"].append(f"{name}: no Workday link on {careers}" + (f" (found {other.group(0)})" if other else ""))
         return []
     status, jobs = workday.list_jobs(spec)
+    if status != "ok":  # an empty or errored list must not read as "this employer has no openings"
+        stats["failures"].append(f"{name}: workday list {spec['tenant']}|{spec['wd']}|{spec['site']} returned {status} ({len(jobs)} jobs)")
     stats["queried"] += len(jobs) // 20 + 1
     stats["notes"].append(f"{name}: workday {spec['tenant']}|{spec['wd']}|{spec['site']} ({len(jobs)} jobs, {status})")
     light = workday.light_postings(spec, name, jobs, f"public_sector:{name}")

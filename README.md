@@ -101,4 +101,4 @@ experience bar he meets, then listed pay ($200K+ ahead of $150K+). Judgment call
   deshaw.com/careers/open-roles (robots.txt). D. E. Shaw and Bloomberg have no readable job feed.
 - index.commoncrawl.org is robots-exempted by the user's choice (`RADAR_ROBOTS_EXEMPT_HOSTS`); each run checks up to
   1,500 unseen boards per ATS and carries the rest forward.
-- USAJobs, Adzuna and SerpAPI run only with keys in `.env`.
+- Adzuna runs only with keys in `.env`. (USAJobs and SerpAPI/Google Jobs were removed: government seats and LinkedIn/Indeed resellers are out; see docs/DECISIONS.md.)
