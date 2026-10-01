@@ -170,3 +170,18 @@ def test_near_miss_digest_does_not_repeat_rows_already_asked_about(tmp_path, mon
     assert {p.key for p in near_misses([a, b], nxt)} == {"b"}  # a was asked about; the digest moves on
     seen.record_decision("greenhouse:acme:2", "right_call")
     assert near_misses([a, b], nxt, seen.Decisions.load()) == []
+
+
+def test_settled_rows_never_reach_the_near_miss_digest():
+    contract = _p(key="axiom", bucket="poor", fit_score=7, poor_reason="Contract-lawyer platform (engagements, not an employee seat)")
+    talent = _p(key="pool", bucket="poor", fit_score=7, poor_reason="Event, talent pool or open application, not a seat")
+    hourly = _p(key="hr", bucket="poor", fit_score=7, poor_reason="Contract, hourly or part-time engagement")
+    live = _p(key="live", bucket="poor", fit_score=7, poor_reason="Weak fit")
+    assert {p.key for p in near_misses([contract, talent, hourly, live])} == {"live"}
+
+
+def test_markdown_escaping_keeps_posting_text_inside_its_cell_and_link():
+    nasty = _p(key="n", title="Counsel](https://evil.test) <img src=x>", url="https://x.test/a|b)c d")
+    assert output._esc(nasty.title) == "Counsel\\](https://evil.test) \\<img src=x\\>"
+    assert output._url(nasty.url) == "https://x.test/a%7Cb%29c%20d"
+    assert output._esc("a | b\nc") == "a \\| b c"

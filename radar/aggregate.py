@@ -12,7 +12,7 @@ import re
 
 from . import config, seen as seen_mod
 from .phase1 import ap_date
-from .score import GOVERNMENT_NAME, LAW_FIRM_NAME, PAY_FLOOR, QUASI_PUBLIC_OK
+from .score import GOVERNMENT_NAME, LAW_FIRM_NAME, LAW_FIRM_NONBILLABLE_REASON, PAY_FLOOR, QUASI_PUBLIC_OK, SETTLED_REASONS
 from .textutil import norm_company, norm_title
 
 SNAP_DIR = config.DATA / "snapshots"
@@ -42,7 +42,15 @@ def _num(v) -> float:
 
 
 def _esc(s) -> str:
-    return str(s or "").replace("|", "\\|").replace("\n", " ")
+    from .output import _esc as esc  # one escaper for every rendered list
+
+    return esc(s)
+
+
+def _url(u) -> str:
+    from .output import _url as url
+
+    return url(u)
 
 
 def settled_out(r: dict) -> str:
@@ -72,7 +80,9 @@ def same_role(rows: list[dict]) -> list[dict]:
         # company prefix too: 'Norm AI' and 'Normlaw' post the same role; two firms' identical "Product Counsel" don't merge
         k = (norm_company(r.get("company", ""))[:4], norm_title(r.get("title", "")), r.get("pay_display", ""),
              (r.get("location") or "").lower()[:40])
-        if k in index and r.get("pay_display") not in ("", "Not listed"):
+        first = index.get(k)
+        # the same role on two boards merges; two reqs on ONE board with one title, pay and location are two choices
+        if first and r.get("pay_display") not in ("", "Not listed") and (r.get("ats"), r.get("board")) != (first.get("ats"), first.get("board")):
             continue
         index[k] = r
         out.append(r)
@@ -108,7 +118,7 @@ def _loc(r: dict) -> str:
 
 
 def _pos(r: dict) -> str:
-    cell = f"[{_esc(r['title'])}]({r['url']})"
+    cell = f"[{_esc(r['title'])}]({_url(r['url'])})"
     if r.get("via_aggregator"):
         cell += " (aggregator link)"
     return ("★ " if thesis(r) else "") + cell
@@ -145,7 +155,8 @@ def sections() -> dict | None:
     dropped = [r for r in fits if not not_a_seat(r) and settled_out(r)]
     fits = [r for r in fits if not not_a_seat(r) and not settled_out(r)]
     near = [r for r in latest if r["bucket"] == "poor" and not settled_out(r) and int(_num(r.get("fit_score"))) >= 5
-            and not r.get("hard_exclude_reason", "").startswith("Pay is quoted as OTE")]
+            and not r.get("hard_exclude_reason", "").startswith("Pay is quoted as OTE")
+            and not any(s in (r.get("poor_reason") or "").replace(LAW_FIRM_NONBILLABLE_REASON, "") for s in SETTLED_REASONS)]  # as in the digest
     near = sorted(near, key=lambda r: (-int(_num(r.get("fit_score"))), -(_num(r.get("pay_max")) or _num(r.get("pay_min")))))[:25]
     outside = [r for r in latest if r["bucket"] == "outside" and not r.get("poor_reason") and not settled_out(r) and not not_a_seat(r)]
     outside.sort(key=lambda r: (not METRO_NORTH.search(r.get("location") or ""), not thesis(r), -int(_num(r.get("fit_score")))))
@@ -193,14 +204,14 @@ def build() -> tuple[str, dict]:
     L += ["", f"## 3. Listed as a fit before, not confirmed on {ap_date(latest_date)} ({len(gone)})", "",
           "Closed, removed, or not reachable this run. Not evidence the role is open.", "",
           "| Position | Company | Last seen | Last listed pay |", "|---|---|---|---|"]
-    L += [f"| [{_esc(e['row']['title'])}]({e['row']['url']}) | {_company(e['row'])} | {ap_date(e['last'])} | "
+    L += [f"| [{_esc(e['row']['title'])}]({_url(e['row']['url'])}) | {_company(e['row'])} | {ap_date(e['last'])} | "
           f"{_esc(' → '.join(e['pays']) or 'Not listed')} |" for e in gone]
     L += ["", f"## 4. Outside NYC / US-remote ({len(outside)})", "",
           "| Position | Company | Location | Listed pay |", "|---|---|---|---|"]
     L += [f"| {_pos(r)} | {_company(r)} | {_esc(_loc(r))} | {_esc(r.get('pay_display'))} |" for r in outside]
     L += ["", f"## 5. Poor matches in NYC / US-remote ({len(poor)})", "",
           "<details><summary>One line each, with the reason</summary>", ""]
-    L += [f"- [{_esc(r['title'])}]({r['url']}), {_esc(r['company'])}, {_esc(r.get('pay_display'))}: {_esc(r.get('poor_reason'))[:160]}"
+    L += [f"- [{_esc(r['title'])}]({_url(r['url'])}), {_esc(r['company'])}, {_esc(r.get('pay_display'))}: {_esc(r.get('poor_reason'))[:160]}"
           for r in sorted(poor, key=lambda r: (r.get("company", ""), r.get("title", "")))]
     L += ["", "</details>", ""]
     L += [f"## 6. Applied or dismissed ({len(handled)})", "", "Recorded in data/decisions.csv; never presented as new again.", "",

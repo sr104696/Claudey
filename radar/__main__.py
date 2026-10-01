@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     rf = sub.add_parser("refresh", help="phases 1-5 end to end")
     rf.add_argument("--skip-discovery", action="store_true", help="reuse leads already gathered today")
     rf.add_argument("--channels", nargs="*", help="discovery channels to run (default: all)")
+    rf.add_argument("--skip", nargs="*", help="discovery channels to leave out of the default set (e.g. commoncrawl)")
     sub.add_parser("score", help="phases 4-5 only, reusing today's seed check, board pulls and leads")
     sub.add_parser("import-inbox", help="turn saved alumni-board alert emails in data/inbox/ into leads")
     sub.add_parser("apply-judgments", help="merge data/judgments/results/*.json into data/judgments.jsonl")
@@ -47,7 +48,8 @@ def main(argv: list[str] | None = None) -> int:
         from . import pipeline
 
         if args.cmd == "refresh":
-            summary = pipeline.refresh(args.skip_discovery, args.channels)
+            channels = args.channels or ([c for c in pipeline.CHANNELS if c not in args.skip] if args.skip else None)
+            summary = pipeline.refresh(args.skip_discovery, channels)
         else:
             from . import phase1
 

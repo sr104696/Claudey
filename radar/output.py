@@ -9,7 +9,7 @@ from . import config, seen
 from .extract import is_metro_north
 from .models import Posting
 from .phase1 import ap_date
-from .score import LAW_FIRM_NONBILLABLE_REASON
+from .score import LAW_FIRM_NONBILLABLE_REASON, SETTLED_REASONS
 from .seeds import parse_current_list
 from .textutil import norm_company, norm_title
 
@@ -55,8 +55,17 @@ def previous_rows(run: str) -> tuple[str, list[dict]]:
                           "status": "open", "years_required": "", "jd_required": ""} for r in rows]
 
 
+_MD_SPECIAL = str.maketrans({c: "\\" + c for c in "[]<>`"})
+
+
 def _esc(s) -> str:
-    return str(s or "").replace("|", "\\|").replace("\n", " ")
+    """Posting text in a table cell or link label: neutralize pipes, newlines and markdown/HTML syntax."""
+    return str(s or "").replace("\\", "\\\\").translate(_MD_SPECIAL).replace("|", "\\|").replace("\n", " ")
+
+
+def _url(u: str) -> str:
+    """A URL inside [label](url): percent-encode the characters that end a link or a table cell."""
+    return str(u or "").replace(" ", "%20").replace("(", "%28").replace(")", "%29").replace("|", "%7C").replace("<", "%3C").replace(">", "%3E")
 
 
 def _loc(p: Posting) -> str:
@@ -81,7 +90,7 @@ def _date_desc(d: str | None) -> int:
 
 
 def _position(p: Posting, new: bool) -> str:
-    cell = f"[{_esc(p.title)}]({p.url})"
+    cell = f"[{_esc(p.title)}]({_url(p.url)})"
     if p.closes_date and p.closes_date >= dt.date.today().isoformat():
         cell += f" (apply by {ap_date(p.closes_date)})"
     if new:
@@ -109,7 +118,7 @@ def fit_order(p: Posting):
 
 
 NEAR_MISS_MAX = 12
-_SETTLED = ("Government seat", "Law-firm seat", "Law-firm associate seat", "Listed pay tops out")
+_SETTLED = SETTLED_REASONS
 
 
 def near_misses(posts: list[Posting], ledger: "seen.Ledger | None" = None, decisions: "seen.Decisions | None" = None) -> list[Posting]:
@@ -136,7 +145,7 @@ def write_near_miss(posts: list[Posting], today: dt.date, ledger: "seen.Ledger |
          "Reply per row with **fit** (the rule was wrong), **right call**, or a one-line reason; "
          "those replies become rubric and keyword changes.", "",
          "| # | Position | Company | Listed pay | Signals | Why it missed |", "|---|---|---|---|---|---|"]
-    L += [f"| {i} | [{_esc(p.title)}]({p.url}) | {_company(p)} | {_esc(p.pay_display)} | {p.fit_score} | {_esc(p.poor_reason)[:220]} |"
+    L += [f"| {i} | [{_esc(p.title)}]({_url(p.url)}) | {_company(p)} | {_esc(p.pay_display)} | {p.fit_score} | {_esc(p.poor_reason)[:220]} |"
           for i, p in enumerate(rows, 1)] or ["", "None new this run."]
     path = config.OUT / f"near_miss_{today.isoformat()}.md"
     path.write_text("\n".join(L) + "\n", encoding="utf-8")
@@ -246,16 +255,16 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
         if r.get("bucket") and r["bucket"] != p.bucket:
             bits.append(f"moved {r['bucket']} → {p.bucket}")
         if bits:
-            changes.append(f"- [{_esc(p.title)}]({p.url}), {_esc(p.company)}: " + "; ".join(bits))
+            changes.append(f"- [{_esc(p.title)}]({_url(p.url)}), {_esc(p.company)}: " + "; ".join(bits))
     D = [f"# Changes since the last run ({base_label})", "", f"Run {run}.", "",
          f"## New ({sum(1 for p in posts if new[p.key] and p.bucket in ('fit', 'poor', 'outside'))})", "",
          "New means no earlier run has shown you the posting; reposts and rows you applied to or dismissed don't count.", ""]
     for b in ("fit", "poor", "outside"):
         ns = [p for p in posts if new[p.key] and p.bucket == b]
         if ns:
-            D += [f"**{b}** ({len(ns)})", ""] + [f"- [{_esc(p.title)}]({p.url}), {_esc(p.company)}, {_esc(_loc(p))}, {p.pay_display}"
+            D += [f"**{b}** ({len(ns)})", ""] + [f"- [{_esc(p.title)}]({_url(p.url)}), {_esc(p.company)}, {_esc(_loc(p))}, {p.pay_display}"
                                                  + (f", fit {p.fit_score}" if b != "poor" else f": {_esc(p.poor_reason)}") for p in sorted(ns, key=order)] + [""]
-    D += [f"## Closed or no longer verifiable ({len(gone)})", ""] + [f"- {_esc(r['title'])}, {_esc(r['company'])} ({r['url']})" for r in gone]
+    D += [f"## Closed or no longer verifiable ({len(gone)})", ""] + [f"- {_esc(r['title'])}, {_esc(r['company'])} ({_url(r['url'])})" for r in gone]
     D += ["", f"## Pay or requirement changes ({len(changes)})", ""] + (changes or ["None."])
     diff = config.OUT / f"diff_{today.isoformat()}.md"
     diff.write_text("\n".join(D) + "\n", encoding="utf-8")

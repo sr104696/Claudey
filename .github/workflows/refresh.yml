@@ -78,13 +78,13 @@ jobs:
             if [ -n "${!k}" ]; then echo "$k: set"; else echo "$k: not set (channel skips)"; fi
           done
 
-      # skip_commoncrawl=true  -> python -m radar refresh --channels <all but commoncrawl>
+      # skip_commoncrawl=true  -> python -m radar refresh --skip commoncrawl   (every other channel, incl. any added later)
       # skip_commoncrawl=false -> python -m radar refresh
       - name: Run the radar
         timeout-minutes: 225  # step timeout fires before the job timeout, so the steps below still run
         run: |
           if [ "${{ inputs.skip_commoncrawl }}" = "true" ]; then
-            python -m radar refresh --channels public_sector official_apis hn feeds websearch wayback
+            python -m radar refresh --skip commoncrawl
           else
             python -m radar refresh
           fi
@@ -116,11 +116,18 @@ jobs:
             exit 0
           fi
           git commit -m "Job radar refresh $(date -u +%Y-%m-%d) run ${{ github.run_id }} skip_cc=${{ inputs.skip_commoncrawl }}"
-          # -X theirs is safe only because every path this job commits is regenerable radar output
+          # -X theirs keeps the run's side of a conflict. Regenerated output is safe; the append-only files people also
+          # write (judgments.jsonl, decisions.csv, leads.jsonl) are protected by merge=union in .gitattributes
           for i in 1 2 3; do
             # rebase onto the branch this run was started from (rebasing a feature branch onto main rewrote its
             # history and the push was rejected as non-fast-forward; run 36366129865)
             git pull --rebase -X theirs origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            # a rebase that stopped midway (modify/delete conflict) makes every retry fail with "rebase in progress":
+            # abort it and fall back to a merge, which keeps the run's files
+            git rebase --abort 2>/dev/null || true
+            git fetch origin "$GITHUB_REF_NAME" && git merge -X theirs "origin/$GITHUB_REF_NAME" -m "Merge $GITHUB_REF_NAME into run" \
+              && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            git merge --abort 2>/dev/null || true
             echo "push attempt $i failed; retrying"; sleep 10
           done
           echo "push failed after 3 attempts"; exit 1
@@ -131,8 +138,10 @@ jobs:
         with:
           name: radar-diagnostics-${{ github.run_id }}
           path: |
-            out/run_log.md
-            out/diff_*.md
+            out/**
+            data/snapshots/**
+            data/judgments/**
+            data/seen.jsonl
             data/runs/**
           if-no-files-found: warn
           retention-days: 14
