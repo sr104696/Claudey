@@ -421,3 +421,33 @@ def test_load_channels_skips_torn_lines(sandbox):
     runlog.record_channel("discover:wayback", queried=3)
     chans = runlog.load_channels()
     assert set(chans) == {"discover:hn", "discover:wayback"}
+
+
+def test_commoncrawl_dead_board_is_remembered_not_requested_every_run(tmp_path, monkeypatch):
+    import json
+
+    from radar import config
+    from radar.discover import commoncrawl
+
+    monkeypatch.setattr(config, "today", lambda: "2026-10-01")
+    monkeypatch.setattr(commoncrawl, "STATE", tmp_path / "cc.json")
+    monkeypatch.setattr(commoncrawl, "BOARDS_CSV", tmp_path / "boards.csv")
+    monkeypatch.setattr(commoncrawl, "_crawls", lambda: ["api"])
+    monkeypatch.setattr(commoncrawl, "_tokens", lambda api, pat, failures: ({"deadco", "liveco"}, 1))
+    monkeypatch.setattr(commoncrawl, "add_leads", lambda leads: len(leads))
+    monkeypatch.setattr(commoncrawl, "record_channel", lambda *a, **k: None)
+    asked: list[str] = []
+
+    def pull(tok, *_):
+        asked.append(tok)
+        return ("board not found", []) if tok == "deadco" else ("ok", [])
+
+    monkeypatch.setattr(commoncrawl, "PULL", {a: pull for a in commoncrawl.PATTERNS})
+    commoncrawl.run()
+    state = json.loads((tmp_path / "cc.json").read_text())
+    assert state["greenhouse"]["deadco"]["dead"] is True and state["greenhouse"]["deadco"]["last_checked"] == "2026-10-01"
+    asked.clear()
+    commoncrawl.run()  # same day, then a later day inside the recheck window: neither board is asked for again
+    monkeypatch.setattr(config, "today", lambda: "2026-10-05")
+    commoncrawl.run()
+    assert asked == []
