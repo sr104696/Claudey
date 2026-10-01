@@ -8,18 +8,21 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import re
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import unquote
 
 from . import config, db
 from .ats import ashby, greenhouse, html as htmlats, lever, smallats, workday
+from .ats.base import build_posting
 from .extract import IN_AREA
 from .http import channel, client, current_channel
 from .keywords import relevance
 from .models import Posting
 from .runlog import record_channel
-from .textutil import norm_company
+from .textutil import names_match, norm_company
 from .verify import point72_title, point72_urls, verify_url
 
 FIELDS = ["company", "segment", "careers_url", "ats_hint", "ats_slug_or_tenant", "confidence", "notes",
@@ -42,10 +45,10 @@ SPECIAL = {
     "finra": ("channel", "public_sector", "covered by the public_sector discovery channel"),
     "parabellum capital": ("none", "", "no public job board (site checked 2026-09-27); web-search queries and team-page watch"),
     "elliott management": ("none", "", "no public job board (checked 2026-09-27); web-search queries only"),
-    "sec": ("channel", "official_apis", "USAJobs (needs an API key)"),
-    "cftc": ("channel", "official_apis", "USAJobs (needs an API key)"),
-    "occ": ("channel", "official_apis", "USAJobs (needs an API key)"),
-    "cfpb": ("channel", "official_apis", "USAJobs (needs an API key)"),
+    "sec": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
+    "cftc": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
+    "occ": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
+    "cfpb": ("none", "", "government seat (out of scope); the USAJobs channel was removed, see docs/DECISIONS.md"),
 }
 
 ATS_LINK = [
@@ -85,10 +88,25 @@ def load_registry() -> list[dict]:
 
 
 def save_registry(rows: list[dict]) -> None:
-    with open(config.COMPANIES_CSV, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore")
-        w.writeheader()
-        w.writerows(rows)
+    """Write the registry atomically (temp file beside it, then os.replace), keeping the file's line endings."""
+    path = os.fspath(config.COMPANIES_CSV)
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+        nl = "\r\n" if (b"\r\n" in data or not data) else "\n"
+    except OSError:
+        nl = "\r\n"
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".companies-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore", lineterminator=nl)
+            w.writeheader()
+            w.writerows(rows)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
 
 
 # ---------------------------------------------------------------------- detection
@@ -112,8 +130,7 @@ def _slug_guesses(name: str, url: str) -> list[str]:
 
 
 def _name_matches(company: str, board_label: str) -> bool:
-    a, b = norm_company(company), norm_company(board_label or "")
-    return bool(a and b) and (a in b or b in a or a[:6] == b[:6])
+    return names_match(company, board_label or "")
 
 
 # names a web search showed belonging to unrelated employers too (2026-09-27: a cybersecurity firm, a children's
@@ -171,7 +188,7 @@ def detect(row: dict) -> tuple[str, str, str]:
                 continue  # Oracle/Eightfold tenants recorded for adapters that don't exist yet, not Workday specs
             spec = workday.spec_from_slug(cand)
             st, jobs = workday.list_jobs(spec, max_pages=1) if spec else ("bad spec", [])
-            if st == "ok" and jobs:
+            if st.startswith(("ok", "partial")) and jobs:  # a one-page peek at a big tenant reads as partial
                 return "workday", cand, "registry Workday hint confirmed"
         else:
             for ats, probe in PROBES:
@@ -219,6 +236,13 @@ def _relevant(p: Posting, segment: str) -> Posting:
     return p
 
 
+def _partial_if(status: str, failed: int) -> str:
+    """A board whose per-job detail calls failed is a partial pull, never a clean 'ok'."""
+    if failed and status.startswith("ok"):
+        return f"partial ({failed} job detail fetches failed)"
+    return status
+
+
 def pull(ats: str, slug: str, company: str, segment: str) -> tuple[str, list[Posting]]:
     src = f"board:{ats}"
     if ats in ("greenhouse", "lever", "ashby"):
@@ -235,36 +259,49 @@ def pull(ats: str, slug: str, company: str, segment: str) -> tuple[str, list[Pos
         st, jobs = workday.list_jobs(spec)
         light = workday.light_postings(spec, company, jobs, src)
         out = []
+        failed = 0
         for lp, j in zip(light, jobs):
             if relevance(lp.title, "", segment)[0] and lp.loc_bucket in KEEP + ("unknown",):
                 try:
                     full = workday.detail(spec, j["externalPath"], company, src)
-                except RuntimeError:
-                    full = None
+                except Exception:  # one job's detail call must not discard the board; keep the light posting
+                    full, failed = None, failed + 1
                 out.append(_relevant(full, segment) if full else lp)
             else:
                 out.append(_relevant(lp, segment))
-        return st, out
+        return _partial_if(st, failed), out
     if ats in ("workable", "bamboohr"):
         st, light = (smallats.wk_pull if ats == "workable" else smallats.bb_pull)(slug, company, src)
         out = []
+        failed = 0
         for lp in light:
             if relevance(lp.title, "", segment)[0]:
-                full = (smallats.wk_detail if ats == "workable" else smallats.bb_detail)(slug, lp.job_id, company, src)
+                try:
+                    full = (smallats.wk_detail if ats == "workable" else smallats.bb_detail)(slug, lp.job_id, company, src)
+                except Exception:
+                    full, failed = None, failed + 1
                 out.append(_relevant(full, segment) if full else lp)
             else:
                 out.append(_relevant(lp, segment))
-        return st, out
+        return _partial_if(st, failed), out
     if ats == "successfactors":
         st, urls = htmlats.rmk_sitemap(slug)
         out = []
+        failed = 0
         for u in urls:
             t = htmlats.rmk_title_from_url(u)
             if relevance(t, "", segment)[0] or relevance(t, "litigation", segment)[0]:
-                p = htmlats.rmk_verify(u, company, src)
+                try:
+                    p = htmlats.rmk_verify(u, company, src)
+                except Exception:
+                    # no light posting exists for these pages: build one from the sitemap URL and title
+                    p, failed = build_posting(
+                        ats="successfactors", board=slug, job_id=u.rstrip("/").rsplit("/", 1)[-1], company=company, title=t,
+                        url=u, description_text="", locations=[""], source=src, status="listed",
+                        evidence="SuccessFactors sitemap lists the page; its detail fetch failed"), failed + 1
                 if p:
                     out.append(_relevant(p, segment))
-        return st, out
+        return _partial_if(st, failed), out
     if ats == "point72":
         urls = point72_urls()
         out = []

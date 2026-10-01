@@ -94,6 +94,8 @@ def run() -> dict:
     cutoff = (dt.date.fromisoformat(today) - dt.timedelta(days=RECHECK_DAYS)).isoformat()
     ch = current_channel()
 
+    partial: dict[str, tuple[list, int, int]] = {}  # ats -> (leads, todo, pending) so far, kept if the sweep dies midway
+
     def sweep(ats: str) -> tuple[list, int, int]:
         with channel(ch):
             st = state[ats]
@@ -101,6 +103,7 @@ def run() -> dict:
             # never-checked tokens from the latest crawl first, then the stalest; alphabetical order starved late tokens
             due.sort(key=lambda t: (t not in fresh[ats], st[t]["last_checked"] or "", t))
             todo, leads = due[:MAX_TOKENS], []
+            partial[ats] = (leads, len(todo), len(due) - len(todo))
             for tok in todo:
                 status, ps = PULL[ats](tok, tok, f"commoncrawl:{ats}")
                 ls = posting_leads(ps, "commoncrawl")
@@ -108,6 +111,11 @@ def run() -> dict:
                     name = greenhouse.board_name(tok) or tok
                     for l in ls:
                         l.company = name
+                if status == "board not found":
+                    # a dead slug (about a quarter of the tokens in the crawl): remember it for RECHECK_DAYS instead of
+                    # asking for it again every run, which spent ~1,000 requests a day and starved live boards
+                    st[tok].update(last_checked=today, jobs=0, relevant=0, last_error=status, dead=True)
+                    continue
                 if status != "ok":  # a transient failure must not hide the board for RECHECK_DAYS
                     st[tok]["last_error"] = status
                     continue
@@ -118,9 +126,9 @@ def run() -> dict:
     def safe_sweep(ats: str) -> tuple[list, int, int]:
         try:
             return sweep(ats)
-        except Exception as e:  # one ATS's failure must not lose the others' leads
+        except Exception as e:  # one ATS's failure must not lose the others' leads, or its own leads so far
             failures.append(f"sweep {ats} failed: {type(e).__name__}: {e}")
-            return [], 0, 0
+            return partial.get(ats, ([], 0, 0))  # tokens already marked checked keep their leads; they won't be re-read for 28 days
 
     with ThreadPoolExecutor(3) as ex:
         res = dict(zip(PATTERNS, ex.map(safe_sweep, PATTERNS)))

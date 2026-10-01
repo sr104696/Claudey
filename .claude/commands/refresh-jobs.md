@@ -37,7 +37,11 @@ Refresh the job radar and report what changed. Follow CLAUDE.md (rubric and site
    counts of new fit rows, new poor-match rows and closed rows, the top 5 new fits (title, company, pay, link),
    notable pay changes, whether `out/alumni_leads.md` has alumni leads to check by hand, and a pointer to
    `out/near_miss_<today>.md` for the user's fit / right-call review. Turn any replies to an earlier digest into rubric
-   or keyword changes before re-scoring.
+   or keyword changes before re-scoring, and record each ruling so it is not asked again:
+   `python -m radar decide "<url, ats:board:id, or Company|Title>" right_call` (or `fit`). When the user says they applied to or
+   dismissed postings, record those as `applied` / `dismissed` (the application tracker artifact's rows can be exported to JSON
+   and loaded with `python -m radar decide --from-tracker FILE`). The run itself never re-presents a posting an earlier run showed
+   or one with a decision, so the summary's "new" counts are choices he hasn't seen.
 
 6. **Commit** `out/`, `data/snapshots/`, `data/source_health.csv`, `data/leads.jsonl`, `data/judgments.jsonl`,
-   `data/cc_boards.json`, `data/discovered_boards.csv` and `seeds/` with a message like `Job radar refresh <date>`.
+   `data/seen.jsonl`, `data/decisions.csv`, `data/cc_boards.json`, `data/discovered_boards.csv` and `seeds/` with a message like `Job radar refresh <date>`.

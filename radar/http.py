@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -58,6 +59,25 @@ def _cacheable(url: str, status: int | None) -> bool:
     if status in NEGATIVE_STATUSES:
         return urlsplit(url).path.endswith("/robots.txt")
     return status in CACHEABLE_STATUSES
+
+
+_SECRET_PARAM = re.compile(r"key|token|secret|auth|app_id|password|sig", re.I)
+_QUERY_PARAM = re.compile(r"([?&;])([^=&#;\s]*)=([^&#;\s]*)")
+_URL_IN_TEXT = re.compile(r"https?://[^\s'\")>\]]+")
+
+
+def redact_url(url: str | None) -> str | None:
+    """Blank the value of credential-looking query params (api_key, app_id, token, ...) before a URL is logged."""
+    if not url or "=" not in url:
+        return url
+    return _QUERY_PARAM.sub(lambda m: f"{m.group(1)}{m.group(2)}=" + ("REDACTED" if _SECRET_PARAM.search(m.group(2)) else m.group(3)), url)
+
+
+def redact_text(text: str | None) -> str | None:
+    """redact_url for every URL embedded in a free-text message (error strings can echo the request URL)."""
+    if not text or "=" not in text:
+        return text
+    return _URL_IN_TEXT.sub(lambda m: redact_url(m.group(0)), text)
 
 
 class _Retryable(Exception):
@@ -101,9 +121,9 @@ class Result:
 
     def describe(self) -> str:
         if self.blocked:
-            return f"blocked ({self.blocked}): {self.error or ''}".strip()
+            return f"blocked ({self.blocked}): {redact_text(self.error) or ''}".strip()
         if self.error:
-            return f"error: {self.error}"
+            return f"error: {redact_text(self.error)}"
         return f"HTTP {self.status}"
 
 
@@ -208,11 +228,11 @@ class PoliteClient:
             "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
             "channel": current_channel(),
             "method": res.method,
-            "url": res.url,
+            "url": redact_url(res.url),
             "status": res.status,
             "cache": res.from_cache,
             "ms": res.elapsed_ms,
-            "error": res.error,
+            "error": redact_text(res.error),
             "blocked": res.blocked,
         }
         if note:
@@ -293,6 +313,8 @@ class PoliteClient:
             rules = robots.Rules(state="error", note=f"robots.txt unreachable: {res.error}")
         elif _is_challenge(res.status, res.headers, res.content):
             rules = robots.Rules(state="challenge", note=f"bot wall on robots.txt (HTTP {res.status})")
+        elif res.status in (408, 425, 429):  # transient / rate-limited: not "no robots.txt", so crawl nothing for now
+            rules = robots.Rules(state="error", note=f"robots.txt HTTP {res.status} (transient; retried later)")
         elif 400 <= res.status < 500:
             rules = robots.Rules(state="missing", note=f"robots.txt HTTP {res.status} (allow all per RFC 9309)")
         elif res.status >= 500:

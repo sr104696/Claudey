@@ -64,14 +64,21 @@ def _date(s: str | None) -> str | None:
     return None
 
 
+# exact tracking parameters; gh_jid (the Greenhouse job id) and ids such as "reference" are NOT tracking
+_TRACKING_PARAMS = {"gh_src", "src", "ref", "source", "lever-source", "gclid", "fbclid", "msclkid", "dclid"}
+
+
 def url_key(url: str) -> str:
     """Stable key for postings without an ATS id. Keeps the query string (Point72's job id lives there)
     but drops tracking parameters."""
     from urllib.parse import parse_qsl, urlencode, urlsplit
 
     u = urlsplit(url)
-    q = [(k, v) for k, v in parse_qsl(u.query) if not k.lower().startswith(("utm_", "gh_src", "lever-source", "src", "ref"))]
-    return "url:" + f"{u.netloc}{u.path}".lower().rstrip("/") + (("?" + urlencode(sorted(q))) if q else "")
+    q = [(k, v) for k, v in parse_qsl(u.query, keep_blank_values=True)
+         if not (k.lower().startswith(("utm_", "mc_")) or k.lower() in _TRACKING_PARAMS)]
+    # a hash-route ("/careers#/job/123") is the job id on single-page career sites; a plain anchor is not
+    frag = ("#" + u.fragment) if u.fragment.startswith("/") else ""
+    return "url:" + f"{u.netloc}{u.path}".lower().rstrip("/") + (("?" + urlencode(sorted(q))) if q else "") + frag
 
 
 def build_posting(
@@ -144,6 +151,7 @@ def build_posting(
         workplace=workplace or workplace_of(loc_join + " " + text[:600]),
         loc_bucket=best_bucket(locs, remote_flag=remote_flag, country=country),
         country=country,
+        remote_flag=remote_flag,
         pay_min=p.min,
         pay_max=p.max,
         pay_type=p.type,

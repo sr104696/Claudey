@@ -30,15 +30,20 @@ RX = {
     "fintech": re.compile(r"fintech|payments?\b|crypto|digital assets?|stablecoin|blockchain|\bAI\b|artificial intelligence|machine learning|\bLLMs?\b|market structure|prediction markets?|exchange|trading", re.I),
 }
 EXCL = {
-    "sales_title": re.compile(r"account executive|\bsales\b|pre-?sales|solutions (engineer|consultant)|business development rep", re.I),
+    "sales_title": re.compile(r"account executive|\bsales\b|pre-?sales|solutions (engineer|consultant)|business development rep", re.I),  # not applied to counsel/attorney titles
     "demo": re.compile(r"(run|deliver|lead|conduct)[^.\n]{0,30}demos?|pre-?sales|prospects?\b|sales (cycle|team|process|pipeline)|close deals|quota", re.I),
     "quant_title": re.compile(r"\bquant|quantitative research|data scien|statistician|machine learning", re.I),
-    "python": re.compile(r"python[^.\n]{0,60}(required|must|proficien)|(proficien|fluen|expert|strong)[^.\n]{0,40}(python|statistic|econometric)", re.I),
-    "er_banking": re.compile(r"\b([5-9]|1\d)(?:\s*(?:-|–|—|to)\s*\d{1,2})?\s*\+?\s*(\+|or more)?\s*years?[^.\n]{0,90}(equity research|investment banking|\bbanking\b|buy[- ]side|hedge fund|private equity|investment (research|experience|analyst)|fundamental (equity|investing))", re.I),
+    # python or hard statistics as a requirement; "a plus" and "strong analytical skills, including statistical reasoning" are not
+    "python": re.compile(r"python[^.\n]{0,60}(required|must|proficien)|(proficien|fluen|expert)[^.\n]{0,40}(python|econometric|statistical (modell?ing|software))|(required|must)[^.\n]{0,60}(python|statistic)", re.I),
+    # N+ years of equity research / banking / buy-side: the candidate's own experience, not "banking law" or "advising private equity sponsors"
+    "er_years": re.compile(r"(?<![-–—])(?<![-–—]\s)(?<!to\s)\b([5-9]|1\d)(?:\s*(?:-|–|—|to)\s*\d{1,2})?\s*\+?\s*(\+|or more)?\s*years?\b", re.I),
+    "er_terms": re.compile(r"equity research|investment banking|investment bank\b|buy[- ]side|sell[- ]side|hedge fund (analyst|experience|investing|portfolio)|private equity (investing|experience|associate|analyst)|investment (research|analyst)|fundamental (equity|investing)", re.I),
+    "er_terms_nonlegal": re.compile(r"\bbanking\b|hedge fund|private equity", re.I),
     "comp_ops_title": re.compile(r"paralegal|document review|compliance (analyst|specialist|associate|officer|operations)|\bkyc\b|\baml\b|surveillance|legal (assistant|secretary)|docketing", re.I),
-    "contract": re.compile(r"\bcontract(or)?\b[^.\n]{0,40}(role|position|basis|engagement)|part[- ]time|\bfreelance\b|\b\d+[- ]week\b", re.I),
+    # a contract seat, not a contract being reviewed: "vendor contract on a daily basis" and "12-week onboarding" are prose
+    "contract": re.compile(r"\bcontract (role|position|basis|engagement|attorney|lawyer|employee)\b|\bcontractor (role|position|engagement)\b|\b(fixed[- ]term|temporary) contract\b|\b\d+[- ]month contract\b|part[- ]time|\bfreelance\b", re.I),
 }
-LAWYER_TITLE = re.compile(r"counsel|attorney|lawyer|legal", re.I)
+LAWYER_TITLE = re.compile(r"counsel|attorney|lawyer|legal|\bA?GC\b", re.I)  # "AGC, Sales & Growth" is a lawyer too
 # in-house practice areas outside what he wants (CLAUDE.md: no generic transactional/admin seats)
 OFF_TARGET_PRACTICE = re.compile(
     r"employment|labor|real estate|commercial|corporate|securities|\bM&A\b|mergers|transactions?\b|\bIP\b|intellectual property|"
@@ -47,7 +52,8 @@ OFF_TARGET_PRACTICE = re.compile(
     re.I,
 )
 TARGET_PRACTICE = re.compile(r"regulat|policy|risk|payments|credit|litigation|investigat|enforcement|compliance counsel|product counsel|governance|crypto|digital asset|stablecoin|derivatives|market", re.I)
-LAW_FIRM_ASSOCIATE = re.compile(r"\bbillable|our (attorneys|lawyers|clients)|law firm associate|join our [\w ]*(practice|group)|am ?law", re.I)
+# in-house postings say "advise our clients" and "join our legal group" too, so only billing and the words 'law firm' count
+LAW_FIRM_ASSOCIATE = re.compile(r"\bbillable|law firm associate", re.I)
 # Seth, 2026-09-25: law firms are out for lifestyle reasons, government is out on pay; listed pay must clear $150K
 # no \b after the suffix: "Smith, P.C." ends in a dot, so a trailing word boundary never matched
 LAW_FIRM_NAME = re.compile(r"(?<![\w.])(LLP|L\.L\.P\.|PLLC|P\.C\.|P\.A\.|LPA)(?!\w)|\blaw (firm|group|offices?)\b|\battorneys at law\b", re.I)
@@ -59,7 +65,11 @@ LAW_FIRM_NONBILLABLE_TITLE = re.compile(
     re.I,
 )
 LAW_FIRM_NONBILLABLE_REASON = "Law-firm seat, non-billable (knowledge/practice support)"
-LAW_FIRM_TEXT = re.compile(r"\bbillable hours?\b|\bam ?law\b|\bour (law )?firm(’|')?s? (attorneys|lawyers|partners|clients)\b", re.I)
+# poor-match reasons that no reply from him would change; such rows are never put in the near-miss digest
+SETTLED_REASONS = ("Government seat", "Law-firm seat", "Law-firm associate seat", "Listed pay tops out", "Contract-lawyer platform",
+                   "Event, talent pool", "Contract, hourly")
+# "3+ years at an Am Law 200 firm preferred" describes the candidate's background, not the employer
+LAW_FIRM_TEXT = re.compile(r"\bbillable hours?\b|\bour (law )?firm(’|')?s? (attorneys|lawyers|partners|clients)\b", re.I)
 GOVERNMENT_NAME = re.compile(
     r"\bdepartment of\b|\boffice of the\b|attorney general|comptroller|\bstate of\b|\bcity of\b|\bcounty\b|"
     r"\bNYS\b|new york state|\bU\.?S\.? (securities|department|attorney)|\bsecurities and exchange commission\b|"
@@ -83,7 +93,7 @@ def affirmed(rx: re.Pattern, text: str) -> re.Match | None:
         if not NEGATION.search(pre):
             return m
     return None
-CONTRACT_PLATFORM = re.compile(r"^axiom\b|talent platform", re.I)  # Axiom places lawyers on engagements
+CONTRACT_PLATFORM = re.compile(r"^axiom (law|legal|talent)\b|talent platform", re.I)  # Axiom places lawyers on engagements; Axiom Space is an employer
 NOT_A_SEAT = re.compile(r"coffee chat|case competition|talent (network|community|pool)|expression of interest|"
                         r"general interest|future opportunit|open application", re.I)
 
@@ -96,7 +106,33 @@ def is_government(p: Posting) -> bool:
 
 
 def is_law_firm(p: Posting) -> bool:
-    return bool(LAW_FIRM_NAME.search(p.company or "") or affirmed(LAW_FIRM_TEXT, p.description or ""))
+    if LAW_FIRM_NAME.search(p.company or ""):
+        return True
+    if re.search(r"underwrit|research|analyst", p.title, re.I) and FUND_LIKE.search(p.company or ""):  # a fund's underwriting seat (Burford Capital) is not a firm seat
+        return False
+    return bool(affirmed(LAW_FIRM_TEXT, p.description or ""))
+
+
+def banking_years_ask(text: str, legal: bool) -> str:
+    """The sentence asking for 5+ years of equity research / banking / buy-side, or ''. For a lawyer-titled seat only
+    the explicit finance-career terms count: 'banking regulatory experience' is legal practice, not banking."""
+    for m in EXCL["er_years"].finditer(text or ""):
+        window = re.split(r"[.\n]", (text or "")[m.end() : m.end() + 90])[0]
+        t = EXCL["er_terms"].search(window) or (None if legal else EXCL["er_terms_nonlegal"].search(window))
+        if t:
+            return re.sub(r"\s+", " ", text[m.start() : m.end() + t.end()]).strip()
+    return ""
+
+
+def python_required(text: str) -> str:
+    for m in EXCL["python"].finditer(text or ""):
+        if not re.search(r"\b(plus|preferred|nice[- ]to[- ]have|bonus|desirable|helpful|advantage)\b", text[m.start() : m.end() + 40], re.I):
+            return text[m.start() : m.end()]
+    return ""
+
+
+ASK_WORDING = re.compile(r"experience|minimum|at least|required|requires|must have|\d\s*\+|or more|practice|practicing", re.I)
+NOT_AN_ASK = re.compile(r"risk|days|spent|building|built|clinical|traditional|times|decade of (growth|history)", re.I)
 
 
 def law_firm_title_carveout(p: Posting) -> bool:
@@ -180,32 +216,47 @@ def score(p: Posting) -> Posting:
     excl: list[str] = []
     poor: list[str] = []
 
+    lawyer = bool(LAWYER_TITLE.search(title))
+    # an annual salary mis-typed as hourly by a scraper ("$214,200-$315,000/hr"): no hourly rate is four figures
+    if p.pay_period == "hour" and (p.pay_min or p.pay_max or 0) >= 1000:
+        p.pay_period = "year"
+        if p.pay_type == "hourly":
+            p.pay_type = "base"
+        p.pay_display = p.pay_display.replace("/hr", "")
+
     # ------------------------------------------------------------ hard excludes
     if p.pay_type == "OTE" or re.search(r"\bOTE\b|on[- ]target earnings", both):
         excl.append("Pay is quoted as OTE (variable-heavy)")
     sales = (j or {}).get("sales_attached")
     if sales is None:
-        sales = "Y" if (EXCL["sales_title"].search(title) or (re.search(r"legal engineer|solutions", title, re.I) and EXCL["demo"].search(text))) else "N"
+        # a counsel seat that supports sales ("Sales Counsel", "AGC, Sales & Growth") is a legal seat, not a sales seat
+        sales = "Y" if ((not lawyer and EXCL["sales_title"].search(title))
+                        or (re.search(r"legal engineer|solutions", title, re.I) and EXCL["demo"].search(text))) else "N"
     p.sales_attached = sales
     if sales == "Y":
         q = (j or {}).get("rationale") or snippet(text, EXCL["demo"]) or title
         excl.append(f"Sales-attached / demo-led role: {q}")
     if "6+ years leveraged finance" in flags(text):
         excl.append("Asks for 6+ years of leveraged-finance or transactional practice: " + snippet(text, r"\b([6-9]|1\d)\+?[^.\n]{0,80}(leveraged finance|transactional|finance practice)"))
-    if EXCL["quant_title"].search(title) or EXCL["python"].search(text):
-        excl.append("Requires Python, statistics or quant work: " + (snippet(text, EXCL["python"]) or title))
-    if EXCL["er_banking"].search(text):
-        excl.append("Asks for 5+ years of equity research, banking or buy-side: " + snippet(text, EXCL["er_banking"]))
+    py = python_required(text)
+    if (not lawyer and EXCL["quant_title"].search(title)) or py:  # "Quantum" and "Machine Learning" in a counsel title are subject matter
+        excl.append("Requires Python, statistics or quant work: " + (py or title))
+    er = banking_years_ask(text, lawyer)
+    if er:
+        excl.append("Asks for 5+ years of equity research, banking or buy-side: " + er)
     ym = years_mentions(text)
-    if any(y.lo >= 10 for y in ym):
-        y = next(y for y in ym if y.lo >= 10)
-        excl.append(f"Asks for 10+ years: “{y.context}”")
+    # a decade only excludes when it is the ask ("10+ years of experience"), not a marketing line ("10 years in traditional clinical models")
+    asks10 = [y for y in ym if y.lo >= 10 and ASK_WORDING.search(y.context) and not NOT_AN_ASK.search(y.context)]
+    if asks10:
+        excl.append(f"Asks for 10+ years: “{asks10[0].context}”")
     if EXCL["comp_ops_title"].search(title) and not re.search(r"counsel|attorney", title, re.I):
         excl.append("Paralegal, document review or compliance-operations role")
     if j and j.get("override_regex_exclude"):
         # a judge read the posting and found the pattern misfired ("not a commission role", "statistics a plus");
-        # structured OTE pay from the ATS is data, not a pattern, so it stands
-        excl = [e for e in excl if e.startswith("Pay is quoted as OTE") and p.pay_type == "OTE"]
+        # structured OTE pay from the ATS is data, not a pattern, so it stands -- unless it sits on a counsel seat whose
+        # text never mentions commission or quota (the label came from a scraper reading boilerplate)
+        real_ote = p.pay_type == "OTE" and not (lawyer and not re.search(r"commission|quota|variable", text, re.I))
+        excl = [e for e in excl if e.startswith("Pay is quoted as OTE") and real_ote]
     if j and j.get("hard_exclude"):
         excl.append(j["hard_exclude"])
 

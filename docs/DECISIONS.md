@@ -19,6 +19,7 @@ after review. Check here before re-proposing anything. The full review and sugge
 | 2026-09-25 | Nothing further is required of Seth: Google Alerts, recruiter subscriptions and a Brave Search key are parked until he opts in | `docs/ROADMAP.md` |
 | 2026-09-27 | Jersey City and Hoboken (PATH) count as NYC, labeled "commutable". Stamford, Greenwich, Westport, Rye and White Plains stay outside but sort first, labeled "Metro-North ~1 hr, hybrid only". | `extract.py`, `output.py` |
 | 2026-09-27 | Judgments are made from committed batch files (no network needed) and applied at the start of the next run | workflow, `pipeline.py` |
+| 2026-10-01 | Each run presents only postings no earlier run has shown, and never ones he applied to or dismissed. Ledger: `data/seen.jsonl` (per surface: a near miss that becomes a fit is new again). Decisions: `data/decisions.csv` via `python -m radar decide`. Full history stays in `out/all_positions.md` and `jobs.csv`. | `radar/seen.py`, `output.write` |
 | 2026-09-28 | Every in-house legal seat is in scope, long shots and off-interest practice areas included -- he applies to those anyway. A counsel/attorney/lawyer/legal-titled seat is never poor-matched for practice area or an unmet domain-years floor; rank it on fit signals instead. The domain-years floor still screens the five non-legal seat families. | `score.score` (`inhouse_legal` gate) |
 
 ## Sources: in, out, and why
@@ -92,3 +93,5 @@ Declined, with evidence:
 Lever pagination: the Kimi review said boards truncate at 100; a later review showed `veeva` returning 916 jobs
 in one call. The adapter pages anyway and stops when a page adds nothing, so it's correct either way at the cost
 of one extra request per board of 100+ jobs.
+
+Removed the SerpAPI (Google Jobs) and USAJobs adapters from `radar/discover/official_apis.py` (2026-10): Google Jobs resells LinkedIn/Indeed/Glassdoor listings and government portals are out. The Muse and Adzuna remain.

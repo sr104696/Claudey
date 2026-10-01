@@ -12,6 +12,7 @@ from urllib.parse import unquote, urlsplit
 
 from selectolax.parser import HTMLParser
 
+from .. import config
 from ..http import client
 from ..models import Posting
 from ..textutil import html_to_text, jsonld_jobposting
@@ -63,7 +64,9 @@ def rmk_verify(url: str, company: str | None = None, source: str = "verify") -> 
     tree = HTMLParser(r.text)
     t = tree.css_first('[itemprop="title"]')
     if not t:
-        return None
+        # a 200 page without the title markup is a layout we cannot read, not proof the job is gone
+        # (genuine removals were handled above: 404/410 and the error-page redirect)
+        raise LookupError(f"{url}: HTTP {r.status} page has no itemprop=title (layout change?)")
     desc = tree.css_first('[itemprop="description"]')
 
     def meta(prop: str) -> str:
@@ -87,7 +90,14 @@ def _jsonld_locations(jp: dict) -> tuple[list[str], str | None]:
     jl = jp.get("jobLocation")
     items = jl if isinstance(jl, list) else [jl] if jl else []
     for it in items:
-        addr = (it or {}).get("address") or {}
+        if isinstance(it, str):  # "jobLocation": "New York, NY"
+            locs.append(it)
+            continue
+        if not isinstance(it, dict):
+            continue
+        addr = it.get("address") or {}
+        if isinstance(addr, list):
+            addr = next((a for a in addr if isinstance(a, (dict, str))), {})
         if isinstance(addr, str):
             locs.append(addr)
             continue
@@ -123,7 +133,7 @@ def jsonld_verify(url: str, company: str | None = None, source: str = "verify", 
     valid = jp.get("validThrough")
     if valid:
         try:
-            if dt.date.fromisoformat(str(valid)[:10]) < dt.date.today():
+            if dt.date.fromisoformat(str(valid)[:10]) < dt.date.fromisoformat(config.today()):
                 return None
         except ValueError:
             pass
@@ -133,6 +143,10 @@ def jsonld_verify(url: str, company: str | None = None, source: str = "verify", 
     if not any(l.strip(" ,") for l in locs):
         locs = [location_near_title(html, jp.get("title") or jp.get("name") or "")]
     desc = jp.get("description") or ""
+    if isinstance(desc, list):  # some sites emit the description as a list of paragraphs
+        desc = "\n".join(f"<p>{x}</p>" if isinstance(x, str) else str(x) for x in desc)
+    elif not isinstance(desc, str):
+        desc = str(desc)
     for k in ("responsibilities", "qualifications", "skills", "educationRequirements", "experienceRequirements"):
         v = jp.get(k)
         if isinstance(v, str) and v:

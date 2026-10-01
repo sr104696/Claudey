@@ -5,11 +5,11 @@ import csv
 import datetime as dt
 import json
 
-from . import config
+from . import config, seen
 from .extract import is_metro_north
 from .models import Posting
 from .phase1 import ap_date
-from .score import LAW_FIRM_NONBILLABLE_REASON
+from .score import LAW_FIRM_NONBILLABLE_REASON, SETTLED_REASONS
 from .seeds import parse_current_list
 from .textutil import norm_company, norm_title
 
@@ -18,7 +18,7 @@ CSV_FIELDS = ["bucket", "is_new", "fit_score", "company", "title", "url", "locat
               "pay_display", "pay_min", "pay_max", "pay_type", "pay_period", "pay_source", "years_required", "years_text",
               "jd_required", "sales_attached", "litigation_accepted", "domain_floor", "hard_exclude_reason", "poor_reason",
               "fit_signals", "judgment_rationale", "posted_date", "closes_date", "status", "status_evidence", "verified_at",
-              "via_aggregator", "pipeline", "sources", "ats", "board", "job_id", "key"]
+              "via_aggregator", "pipeline", "sources", "ats", "board", "job_id", "key", "seen_before", "decision"]
 
 
 def _match_key(ats=None, board=None, job_id=None, url=None, company: str = "", title: str = "") -> str:
@@ -55,8 +55,17 @@ def previous_rows(run: str) -> tuple[str, list[dict]]:
                           "status": "open", "years_required": "", "jd_required": ""} for r in rows]
 
 
+_MD_SPECIAL = str.maketrans({c: "\\" + c for c in "[]<>`"})
+
+
 def _esc(s) -> str:
-    return str(s or "").replace("|", "\\|").replace("\n", " ")
+    """Posting text in a table cell or link label: neutralize pipes, newlines and markdown/HTML syntax."""
+    return str(s or "").replace("\\", "\\\\").translate(_MD_SPECIAL).replace("|", "\\|").replace("\n", " ")
+
+
+def _url(u: str) -> str:
+    """A URL inside [label](url): percent-encode the characters that end a link or a table cell."""
+    return str(u or "").replace(" ", "%20").replace("(", "%28").replace(")", "%29").replace("|", "%7C").replace("<", "%3C").replace(">", "%3E")
 
 
 def _loc(p: Posting) -> str:
@@ -81,7 +90,7 @@ def _date_desc(d: str | None) -> int:
 
 
 def _position(p: Posting, new: bool) -> str:
-    cell = f"[{_esc(p.title)}]({p.url})"
+    cell = f"[{_esc(p.title)}]({_url(p.url)})"
     if p.closes_date and p.closes_date >= dt.date.today().isoformat():
         cell += f" (apply by {ap_date(p.closes_date)})"
     if new:
@@ -109,31 +118,38 @@ def fit_order(p: Posting):
 
 
 NEAR_MISS_MAX = 12
-_SETTLED = ("Government seat", "Law-firm seat", "Law-firm associate seat", "Listed pay tops out")
+_SETTLED = SETTLED_REASONS
 
 
-def near_misses(posts: list[Posting]) -> list[Posting]:
-    """Poor-match rows closest to the line: soft reasons with 4+ signals, or pattern excludes on 5+ signals."""
+def near_misses(posts: list[Posting], ledger: "seen.Ledger | None" = None, decisions: "seen.Decisions | None" = None) -> list[Posting]:
+    """Poor-match rows closest to the line: soft reasons with 4+ signals, or pattern excludes on 5+ signals.
+    With a ledger, rows an earlier digest already asked about (or that he has ruled on) are skipped, so each run's
+    digest is twelve questions he hasn't answered."""
     def close(p: Posting) -> bool:
         # the non-billable law-firm reason starts "Law-firm seat" too, but it is reviewable, not settled
         reason = p.poor_reason.replace(LAW_FIRM_NONBILLABLE_REASON, "")
         if p.bucket != "poor" or any(s in reason for s in _SETTLED):
             return False
+        if ledger and ledger.seen(p, "near_miss"):
+            return False
+        if decisions and decisions.for_posting(p) in seen.HIDE_FROM_DIGEST:
+            return False
         return (not p.hard_exclude_reason and p.fit_score >= 4) or p.fit_score >= 5
     return sorted([p for p in posts if close(p)], key=lambda p: (-p.fit_score, -(p.pay_max or p.pay_min or 0), p.company))[:NEAR_MISS_MAX]
 
 
-def write_near_miss(posts: list[Posting], today: dt.date) -> str:
-    rows = near_misses(posts)
-    L = ["# Near misses", "", f"Run {ap_date(today)}. The {len(rows)} poor-match rows closest to the fit line. "
+def write_near_miss(posts: list[Posting], today: dt.date, ledger: "seen.Ledger | None" = None,
+                    decisions: "seen.Decisions | None" = None) -> tuple[str, list[Posting]]:
+    rows = near_misses(posts, ledger, decisions)
+    L = ["# Near misses", "", f"Run {ap_date(today)}. The {len(rows)} poor-match rows closest to the fit line that you haven't been asked about. "
          "Reply per row with **fit** (the rule was wrong), **right call**, or a one-line reason; "
          "those replies become rubric and keyword changes.", "",
          "| # | Position | Company | Listed pay | Signals | Why it missed |", "|---|---|---|---|---|---|"]
-    L += [f"| {i} | [{_esc(p.title)}]({p.url}) | {_company(p)} | {_esc(p.pay_display)} | {p.fit_score} | {_esc(p.poor_reason)[:220]} |"
-          for i, p in enumerate(rows, 1)] or ["", "None this run."]
+    L += [f"| {i} | [{_esc(p.title)}]({_url(p.url)}) | {_company(p)} | {_esc(p.pay_display)} | {p.fit_score} | {_esc(p.poor_reason)[:220]} |"
+          for i, p in enumerate(rows, 1)] or ["", "None new this run."]
     path = config.OUT / f"near_miss_{today.isoformat()}.md"
     path.write_text("\n".join(L) + "\n", encoding="utf-8")
-    return str(path)
+    return str(path), rows
 
 
 def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
@@ -163,29 +179,44 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     for p in posts:
         name_count[_name_key(p.company, p.title)] = name_count.get(_name_key(p.company, p.title), 0) + 1
 
-    new = {p.key: (prior(p) is None and not p.pipeline) for p in posts}
+    # "new" means no earlier run presented this posting on this surface (see radar/seen.py), not merely "absent from
+    # last run's snapshot": a posting that closed and came back, or a near miss that became a fit, is judged on
+    # what Seth has actually been shown. Rows he applied to or dismissed are never new.
+    ledger = seen.Ledger.load(run, SNAP_DIR, config.OUT)
+    decisions = seen.Decisions.load()
+    decided = {p.key: decisions.for_posting(p) for p in posts}
+    handled = {k for k, d in decided.items() if d in seen.HIDE_EVERYWHERE}
+    already = {p.key: ledger.seen(p, seen.BUCKET_SURFACE.get(p.bucket, "poor")) for p in posts}
+    new = {p.key: not p.pipeline and not already[p.key] and p.key not in handled for p in posts}
     order = lambda p: (-p.fit_score, -(p.pay_max or p.pay_min or 0), p.company)
     fit = sorted([p for p in posts if p.bucket == "fit"], key=fit_order)
     poor = sorted([p for p in posts if p.bucket == "poor"], key=order)
     # Metro-North towns (Stamford, Greenwich, ...) first: out of area, but reachable for a hybrid seat
     outside = sorted([p for p in posts if p.bucket == "outside" and not p.poor_reason],
                      key=lambda p: (not is_metro_north(p.locations or [p.location]),) + order(p))
+    # what this run presents: only postings he hasn't seen, plus his pipeline companies (tracked every run)
+    fit_show = [p for p in fit if new[p.key] or (p.pipeline and p.key not in handled)]
+    poor_show = [p for p in poor if new[p.key]]
+    outside_show = [p for p in outside if new[p.key]]
+    n_seen = sum(1 for p in posts if p.bucket in ("fit", "poor", "outside") and already[p.key] and p.key not in handled)
+    n_handled = sum(1 for p in posts if p.key in handled)
     today = dt.date.today()
 
     L = ["# Open positions", "",
-         f"Checked on {ap_date(today)}. Links go straight to each posting. Rows marked † are new since the last run "
-         f"({base_label if base_label == 'seed list' else ap_date(base_label)}).", "",
-         "## Postings that fit your profile", "",
+         f"Checked on {ap_date(today)}. Links go straight to each posting. This list holds only postings no earlier run "
+         f"has shown you (plus your pipeline companies); {n_seen} already presented are still open and {n_handled} you "
+         "have applied to or dismissed. The full running list is out/all_positions.md.", "",
+         f"## New postings that fit your profile ({len(fit_show)})", "",
          "Best first: ★ marks the seat families where your background clears the domain-years screen, then roles whose "
          "experience bar you meet, then listed pay ($200K+ ahead of $150K+).", "",
          "| Position | Company | Location | Listed pay |", "|---|---|---|---|"]
-    L += [f"| {'★ ' if is_thesis(p) else ''}{_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} |" for p in fit]
-    L += ["", "## Also open, but a poor match", "", "| Position | Company | Location | Listed pay | Why it's a poor match |", "|---|---|---|---|---|"]
-    L += [f"| {_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} | {_esc(p.poor_reason)} |" for p in poor]
-    L += ["", "## Outside NYC / US-remote", "", "Roles elsewhere in the US that would otherwise fit. Weaker out-of-area matches are in jobs.csv.", "",
+    L += [f"| {'★ ' if is_thesis(p) else ''}{_position(p, False)} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} |" for p in fit_show]
+    L += ["", f"## New, but a poor match ({len(poor_show)})", "", "| Position | Company | Location | Listed pay | Why it's a poor match |", "|---|---|---|---|---|"]
+    L += [f"| {_position(p, False)} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} | {_esc(p.poor_reason)} |" for p in poor_show]
+    L += ["", f"## New outside NYC / US-remote ({len(outside_show)})", "", "Roles elsewhere in the US that would otherwise fit. Weaker out-of-area matches are in jobs.csv.", "",
           "| Position | Company | Location | Listed pay | Fit |", "|---|---|---|---|---|"]
-    L += [f"| {_position(p, new[p.key])} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} | "
-          f"Fit ({p.fit_score} signals) |" for p in outside]
+    L += [f"| {_position(p, False)} | {_company(p)} | {_esc(_loc(p))} | {_esc(p.pay_display)} | "
+          f"Fit ({p.fit_score} signals) |" for p in outside_show]
     hidden = sum(1 for p in posts if p.bucket == "outside" and p.poor_reason) + sum(1 for p in posts if p.bucket == "low")
     L += ["", f"{hidden} weaker matches (out-of-area poor matches and the long tail) are in jobs.csv only."]
     L += ["", "## Checked, not open", ""]
@@ -196,7 +227,8 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
     rows = []
     for p in sorted(posts, key=lambda p: ({"fit": 0, "poor": 1, "outside": 2}.get(p.bucket, 3),) + order(p)):
         d = p.model_dump()
-        d.update(is_new=int(new[p.key]), fit_signals="; ".join(p.fit_signals), sources="; ".join(p.sources))
+        d.update(is_new=int(new[p.key]), seen_before=int(already[p.key]), decision=decided[p.key],
+                 fit_signals="; ".join(p.fit_signals), sources="; ".join(p.sources))
         rows.append({k: d.get(k, "") for k in CSV_FIELDS})
     for path in (config.OUT / "jobs.csv", SNAP_DIR / f"{run}.csv"):
         with open(path, "w", newline="", encoding="utf-8") as f:
@@ -223,23 +255,36 @@ def write(posts: list[Posting], closed_notes: list[str], stats: dict) -> dict:
         if r.get("bucket") and r["bucket"] != p.bucket:
             bits.append(f"moved {r['bucket']} → {p.bucket}")
         if bits:
-            changes.append(f"- [{_esc(p.title)}]({p.url}), {_esc(p.company)}: " + "; ".join(bits))
+            changes.append(f"- [{_esc(p.title)}]({_url(p.url)}), {_esc(p.company)}: " + "; ".join(bits))
     D = [f"# Changes since the last run ({base_label})", "", f"Run {run}.", "",
-         f"## New ({sum(1 for p in posts if new[p.key] and p.bucket in ('fit', 'poor', 'outside'))})", ""]
+         f"## New ({sum(1 for p in posts if new[p.key] and p.bucket in ('fit', 'poor', 'outside'))})", "",
+         "New means no earlier run has shown you the posting; reposts and rows you applied to or dismissed don't count.", ""]
     for b in ("fit", "poor", "outside"):
         ns = [p for p in posts if new[p.key] and p.bucket == b]
         if ns:
-            D += [f"**{b}** ({len(ns)})", ""] + [f"- [{_esc(p.title)}]({p.url}), {_esc(p.company)}, {_esc(_loc(p))}, {p.pay_display}"
+            D += [f"**{b}** ({len(ns)})", ""] + [f"- [{_esc(p.title)}]({_url(p.url)}), {_esc(p.company)}, {_esc(_loc(p))}, {p.pay_display}"
                                                  + (f", fit {p.fit_score}" if b != "poor" else f": {_esc(p.poor_reason)}") for p in sorted(ns, key=order)] + [""]
-    D += [f"## Closed or no longer verifiable ({len(gone)})", ""] + [f"- {_esc(r['title'])}, {_esc(r['company'])} ({r['url']})" for r in gone]
+    D += [f"## Closed or no longer verifiable ({len(gone)})", ""] + [f"- {_esc(r['title'])}, {_esc(r['company'])} ({_url(r['url'])})" for r in gone]
     D += ["", f"## Pay or requirement changes ({len(changes)})", ""] + (changes or ["None."])
     diff = config.OUT / f"diff_{today.isoformat()}.md"
     diff.write_text("\n".join(D) + "\n", encoding="utf-8")
 
-    near = write_near_miss(posts, today)
+    near, near_rows = write_near_miss(posts, today, ledger, decisions)
+
+    # remember what this run put in front of him; the next run won't present any of it again
+    for p in fit_show:
+        ledger.present(p, "fit")
+    for p in poor_show:
+        ledger.present(p, "poor")
+    for p in outside_show:
+        ledger.present(p, "outside")
+    for p in near_rows:
+        ledger.present(p, "near_miss")
+    ledger.save()
 
     new_fit = [p for p in fit if new[p.key]]
     return {"open_positions": str(md), "diff": str(diff), "near_miss": near, "fit": len(fit), "poor": len(poor), "outside": len(outside),
+            "already_seen": n_seen, "handled": n_handled,
             "new_fit": len(new_fit), "new_poor": sum(new[p.key] for p in poor), "new_outside": sum(new[p.key] for p in outside),
             "closed": len(gone), "top_new_fits": [f"{p.title} | {p.company} | {p.pay_display} | fit {p.fit_score} | {p.url}" for p in new_fit[:5]],
             "baseline": base_label}

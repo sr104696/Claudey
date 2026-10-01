@@ -5,6 +5,7 @@ longest-match, which gets real-world files (ag.ny.gov, deshaw.com, finra.org) wr
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from urllib.parse import unquote, urlsplit
@@ -38,6 +39,20 @@ class Rules:
             if _match(pat, path) and len(pat) > best_len:
                 best_len, best_allow = len(pat), False
         return best_allow
+
+
+MAX_CRAWL_DELAY = 30.0  # a hostile or typo'd Crawl-delay must not stall the whole run
+
+
+def _delay(val: str) -> float | None:
+    """Parse a Crawl-delay value; None for malformed, nan, inf or negative; clamped to MAX_CRAWL_DELAY."""
+    try:
+        d = float(val)
+    except ValueError:
+        return None
+    if math.isnan(d) or d < 0:
+        return None
+    return min(d, MAX_CRAWL_DELAY)  # inf clamps to the maximum
 
 
 _pat_cache: dict[str, re.Pattern] = {}
@@ -94,13 +109,11 @@ def parse(text: str, ua_token: str) -> Rules:
             elif key == "disallow":
                 rules.disallow.append(val)
             elif key == "crawl-delay":
-                try:
-                    rules.crawl_delay = max(rules.crawl_delay or 0.0, float(val))
-                except ValueError:
-                    pass
+                if (d := _delay(val)) is not None:
+                    rules.crawl_delay = max(rules.crawl_delay or 0.0, d)
     # A crawl-delay placed before any user-agent line (citadel.com) still applies to us.
     if rules.crawl_delay is None:
-        m = re.search(r"(?im)^\s*crawl-delay\s*:\s*([\d.]+)", text)
+        m = re.search(r"(?im)^\s*crawl-delay\s*:\s*([^\s#]+)", text)
         if m and not re.search(r"(?im)^\s*user-agent", text[: m.start()]):
-            rules.crawl_delay = float(m.group(1))
+            rules.crawl_delay = _delay(m.group(1))
     return rules

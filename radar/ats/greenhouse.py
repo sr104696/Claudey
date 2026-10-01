@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from ..extract import Pay
+from ..extract import _HOURLY, Pay, is_ote_text
 from ..http import client, probe_client
 from ..models import Posting
 from ..textutil import html_to_text
@@ -51,9 +51,22 @@ def _pay(ranges: list[dict] | None) -> Pay | None:
     lo, hi = pick.get("min_cents"), pick.get("max_cents")
     if lo is None and hi is None:
         return None
-    txt = " ".join(str(pick.get(k) or "") for k in ("title", "blurb", "description"))
-    hourly = bool(re.search(r"hour", txt, re.I)) or (hi or lo or 0) / 100 < 1000
-    ote = bool(re.search(r"\bOTE\b|on[- ]target|commission", txt, re.I))
+    top = (hi or lo) / 100
+    # hourly only from a structured unit if the range has one, else when the amounts are small AND an explicit hourly
+    # marker sits in the title / first part of the blurb; the bare word "hours" in prose ("working hours") means nothing
+    unit = " ".join(str(pick.get(k) or "") for k in ("unit", "period", "interval", "pay_period", "frequency")).lower()
+    near = (pick.get("title") or "") + " " + (pick.get("blurb") or "")[:300]
+    if "hour" in unit:
+        hourly = True
+    elif re.search(r"year|annual|salary", unit):
+        hourly = False
+    else:
+        hourly = top < 1000 and bool(_HOURLY.search(near))
+        if top < 1000 and not hourly:
+            return None  # a few dollars with no hourly marker is not a salary we can read; fall back to the text
+    # OTE only on explicit pay language in the range's title or the start of its blurb; the long prose may name an
+    # agency ("Securities and Exchange Commission") and must not turn a salary range into OTE
+    ote = is_ote_text(pick.get("title") or "") or is_ote_text((pick.get("blurb") or "")[:600])
     return pay_from_range(
         (lo or hi) / 100, (hi or lo) / 100, period="hour" if hourly else "year", ote=ote,
         source="greenhouse:pay_input_ranges", currency=pick.get("currency_type") or "USD",

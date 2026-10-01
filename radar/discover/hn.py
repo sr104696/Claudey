@@ -22,8 +22,18 @@ ROLE_SPLIT = re.compile(r"\s*[,;/]\s*|\s+and\s+|\s*\|\s*")
 
 def run() -> dict:
     r = client().get("https://hn.algolia.com/api/v1/search_by_date", params={"tags": "story,author_whoishiring", "hitsPerPage": 20})
-    stories = [h for h in r.json().get("hits", []) if h.get("title", "").startswith("Ask HN: Who is hiring")][:3] if r.ok else []
     queried, scanned, matched, leads, failures = 1, 0, 0, [], []
+    stories = []
+    if not r.ok:
+        failures.append(f"thread search: {r.describe()}")
+    else:
+        try:
+            stories = [h for h in r.json().get("hits", []) if h.get("title", "").startswith("Ask HN: Who is hiring")][:3]
+        except (ValueError, AttributeError) as e:
+            failures.append(f"thread search: response was not the expected JSON ({type(e).__name__})")
+        else:
+            if not stories:  # the search worked but matched no thread: a renamed title looks exactly like "no jobs"
+                failures.append("thread search: no 'Ask HN: Who is hiring' threads found in the last 20 posts by whoishiring")
     for s in stories:
         it = client().get(f"https://hn.algolia.com/api/v1/items/{s['objectID']}")
         queried += 1
@@ -31,7 +41,12 @@ def run() -> dict:
             failures.append(f"thread {s['objectID']}: {it.describe()}")
             continue
         month = s["title"].split("(")[-1].rstrip(")")
-        for c in it.json().get("children", []):
+        try:
+            children = it.json().get("children", [])
+        except (ValueError, AttributeError):
+            failures.append(f"thread {s['objectID']}: response was not JSON")
+            continue
+        for c in children:
             raw = c.get("text") or ""
             if not raw:
                 continue

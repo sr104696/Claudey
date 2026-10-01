@@ -23,11 +23,24 @@ def sr_probe(slug: str) -> tuple[bool, int]:
 
 
 def sr_pull(slug: str, company: str, source: str = "board:smartrecruiters") -> tuple[str, list[Posting]]:
-    r = client().get(f"{SR_API}/{slug}/postings", params={"limit": 100})
-    if not r.ok:
-        return r.describe(), []
+    content: list[dict] = []
+    status = "partial (page limit reached)"
+    for page in range(50):
+        r = client().get(f"{SR_API}/{slug}/postings", params={"limit": 100, "offset": page * 100})
+        if not r.ok:
+            if not content:
+                return r.describe(), []
+            status = f"partial ({r.describe()}; {len(content)} postings read before it)"
+            break
+        d = r.json()
+        batch = d.get("content", [])
+        content.extend(batch)
+        total = d.get("totalFound")
+        if len(batch) < 100 or (isinstance(total, int) and len(content) >= total):
+            status = "ok"
+            break
     out = []
-    for j in r.json().get("content", []):
+    for j in content:
         loc = j.get("location") or {}
         out.append(build_posting(
             ats="smartrecruiters", board=slug, job_id=j.get("id"), company=company, title=j.get("name", ""),
@@ -36,7 +49,7 @@ def sr_pull(slug: str, company: str, source: str = "board:smartrecruiters") -> t
             remote_flag=loc.get("remote"), country=(loc.get("country") or "").upper() or None,
             posted=j.get("releasedDate"), source=source, status="listed",
         ))
-    return "ok", out
+    return status, out
 
 
 # ------------------------------------------------------------------------ Workable
@@ -79,17 +92,22 @@ def wk_probe(slug: str) -> tuple[bool, int]:
 
 def wk_pull(slug: str, company: str, source: str = "board:workable") -> tuple[str, list[Posting]]:
     results, token = [], None
+    status = "partial (page limit reached)"
     for _ in range(20):
         body = {"query": "", "location": [], "department": [], "worktype": [], "remote": []}
         if token:
             body["token"] = token
         r = client().post_json(f"{WK}/v3/accounts/{slug}/jobs", body)
         if not r.ok:
-            return r.describe(), []
+            if not results:
+                return r.describe(), []
+            status = f"partial ({r.describe()}; {len(results)} jobs read before it)"
+            break
         d = r.json()
         results.extend(d.get("results", []))
         token = d.get("nextPage")
         if not token:
+            status = "ok"
             break
     out = []
     for j in results:
@@ -103,7 +121,7 @@ def wk_pull(slug: str, company: str, source: str = "board:workable") -> tuple[st
             url=f"https://apply.workable.com/{slug}/j/{sc}/", description_text="", locations=locs,
             remote_flag=bool(j.get("remote")), posted=j.get("published"), source=source, status="listed",
         ))
-    return "ok", out
+    return status, out
 
 
 def wk_detail(slug: str, shortcode: str, company: str, source: str = "verify") -> Posting | None:

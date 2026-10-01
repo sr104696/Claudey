@@ -68,3 +68,23 @@ In order of value:
 - Monthly miss audit: when a thesis employer's hire becomes public, check whether the radar ever saw the seat.
 - Fit-signal decorrelation: JD, pay ≥ $150K, fintech subject and 2–5 years co-occur in almost every product-counsel
   posting; consider counting them as one signal so 3 of 10 means something.
+
+## Left open by the 2026-10-01 code review
+
+Three reviewers read every module; the confirmed defects were fixed (see git history for that date). These were
+judged not worth changing yet:
+
+- **Verification cache.** Responses are reused for `RADAR_CACHE_TTL_HOURS` (20), including the fetch that proves a
+  posting is open. CI never keeps `cache/`, so it is only a risk for two local runs under 20 hours apart. Shorten the TTL
+  for verification calls if local runs become routine.
+- **`years_required` takes the smallest mention**, so "7+ years of legal experience ... 2 years with Excel" earns the
+  2-5 band signal. The 10+ and 6+ excludes use the full list and are unaffected. Changing it moves many scores.
+- **Growth.** `data/leads.jsonl` (about 1.2 MB, re-read under a lock on every add) and `out/run_log.md` (about 1 MB, rewritten
+  every run) only grow. Prune leads past `LEAD_WINDOW_DAYS` and trim the log's http table when it matters.
+- **Dead code** in `radar/db.py` (`board_jobs`, `write_snapshot`, `snapshot`, `previous_run`, `get_judgment`, `put_judgment`
+  and their tables), `extract._JD_ANY`, and an unreachable branch in `textutil.html_to_text`.
+- **Government portals** (`public_sector` NYDFS, NY AG, statejobs) still produce leads that score as "Government seat".
+  They cost requests and add nothing; keep only FINRA and the NY Fed when that channel is next touched.
+- **Repost matching** treats one company + title + listed pay as one choice; two genuinely different reqs that share all
+  three are shown once. Revisit if Seth finds a missed twin.
+

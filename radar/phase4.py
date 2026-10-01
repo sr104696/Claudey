@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import re
 import sys
@@ -21,7 +22,7 @@ from .models import Posting
 from .phase1 import same_role
 from .runlog import record_channel
 from .score import JUDGMENTS, desc_hash, judgments, role_judgment, score
-from .textutil import html_to_text, jsonld_jobposting, norm_company
+from .textutil import html_to_text, jsonld_jobposting, names_match, norm_company, norm_title
 from .verify import is_aggregator, verify_url
 
 KEEP = IN_AREA + ("us_other",)
@@ -44,9 +45,18 @@ def _page_posting(url: str, company: str, title: str, location: str, source: str
     if not location:
         m = re.search(r"(?:location|duty station|work location)[:\s]+([^\n]{3,60})", text, re.I)
         location = re.split(r"\s{2,}|business unit|salary|negotiating|title:|\bgrade\b", m.group(1), flags=re.I)[0].strip(" ,:") if m else ("New York, NY" if re.search(r"new york,? ny|one state street|manhattan", text, re.I) else "")
-    return build_posting(ats="page", board=urlsplit(url).netloc, job_id=None, company=company, title=title, url=url,
-                         description_text=text, locations=[location], source=source,
-                         evidence=f"Listed on {listed_on} this run; posting document fetched (HTTP {r.status})")
+    p = build_posting(ats="page", board=urlsplit(url).netloc, job_id=None, company=company, title=title, url=url,
+                      description_text=text, locations=[location], source=source,
+                      evidence=f"Listed on {listed_on} this run; posting document fetched (HTTP {r.status})")
+    # a 200 is not "open": an expired-posting page and a past closing date both say closed
+    from .ats.html import CLOSED_PHRASES
+
+    gone = CLOSED_PHRASES.search(text[:5000])
+    if gone:
+        p.status, p.status_evidence = "closed", f"Page loaded (HTTP {r.status}) but says: \"{gone.group(0)}\""
+    elif p.closes_date and p.closes_date < config.today():
+        p.status, p.status_evidence = "closed", f"Page loaded (HTTP {r.status}) but the closing date {p.closes_date} has passed"
+    return p
 
 
 def _registry() -> dict[str, tuple[str, str]]:
@@ -81,13 +91,20 @@ def _employer_board(company: str, reg: dict) -> tuple[str, str] | None:
     key = norm_company(company)
     if key in reg:
         return reg[key]
-    for guess in {key, re.sub(r"[^a-z0-9]", "", company.lower().split()[0]) if company else ""}:
+    first = re.sub(r"[^a-z0-9]", "", company.lower().split()[0]) if company else ""
+    for guess in dict.fromkeys([key, first]):  # a list, so the probe order (and the board chosen) is deterministic
         if len(guess) < 3:
             continue
         for ats, probe in (("greenhouse", greenhouse.probe), ("lever", lever.probe), ("ashby", ashby.probe)):
             ok, n = probe(guess)
             if ok and n:
-                if ats == "greenhouse" and norm_company(greenhouse.board_name(guess) or "")[:5] != key[:5]:
+                if ats == "greenhouse":
+                    # Greenhouse reports the board's own name: it must be this employer
+                    if not names_match(company, greenhouse.board_name(guess) or ""):
+                        continue
+                elif guess != key:
+                    # Lever and Ashby report no name, so only a slug equal to the employer's whole name counts;
+                    # the first word alone ("apollo") is another employer's board as often as not
                     continue
                 return ats, guess
     return None
@@ -98,7 +115,7 @@ def resolve_lead(lead: dict, reg: dict) -> tuple[str, Posting | None, str]:
     url, company, title, src = lead["url"], lead.get("company") or "", lead.get("title") or "", lead["source"]
     if src.startswith("public_sector:") and not re.search(r"greenhouse|lever|ashby|myworkdayjobs", url):
         p = _page_posting(url, company, title, lead.get("location") or "", src, src.split(":", 1)[1])
-        return ("open", p, p.status_evidence) if p else ("unverified", None, "posting document did not load")
+        return (p.status, p, p.status_evidence) if p else ("unverified", None, "posting document did not load")
     if not is_aggregator(url) and not url.startswith("https://news.ycombinator.com"):
         o = verify_url(url, company, src)
         if o.posting and not o.posting.title:
@@ -196,13 +213,20 @@ def dedupe(posts: list[Posting]) -> list[Posting]:
     keep distinct reqs that merely share a generic title ("Counsel" on two teams)."""
 
     def body(p: Posting) -> str:
-        return re.sub(r"\W+", " ", p.description.lower())[:1500]
+        """Hash of the FULL normalized text: reqs sharing a long company intro but differing in the tail stay apart."""
+        t = re.sub(r"\W+", " ", p.description.lower()).strip()
+        return hashlib.sha1(t.encode("utf-8")).hexdigest() if t else ""
+
+    def same_listing(q: Posting, p: Posting) -> bool:
+        """Cross-ATS copies (seed page vs ATS API) merge only when everything visible matches."""
+        loc = lambda x: re.sub(r"\W+", " ", (x.location or "").lower()).strip()
+        return (q.ats != p.ats and norm_company(q.company) == norm_company(p.company) and norm_title(q.title) == norm_title(p.title)
+                and loc(q) == loc(p) and (q.pay_min, q.pay_max, q.pay_type) == (p.pay_min, p.pay_max, p.pay_type))
 
     by_key: dict[str, list[Posting]] = {}
     for p in sorted(posts, key=rank):
         group = by_key.setdefault(p.dedupe_key(), [])
-        twin = next((q for q in group if not q.description or not p.description or body(q) == body(p)
-                     or q.ats != p.ats), None)
+        twin = next((q for q in group if q.key == p.key or (body(q) and body(q) == body(p)) or same_listing(q, p)), None)
         if twin:
             twin.sources = sorted(set(twin.sources) | set(p.sources))
         else:
@@ -242,7 +266,7 @@ def run(verify_leads: bool = True) -> tuple[list[Posting], dict]:
 
             p.key = url_key(p.url)
         if p.locations:  # recompute with current rules; stored rows may predate a fix
-            p.loc_bucket = best_bucket(p.locations, remote_flag=(p.workplace == "remote") or None, country=p.country)
+            p.loc_bucket = best_bucket(p.locations, remote_flag=p.remote_flag or None, country=p.country)
         p.relevant, p.relevance_reason = relevance(p.title, p.description, p.segment)
         if "seed" in p.sources:
             p.relevant = True
