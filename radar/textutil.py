@@ -47,19 +47,20 @@ def jsonld_objects(html: str) -> list[dict]:
                 d = json.loads(re.sub(r"[\x00-\x1f]", " ", raw))
             except ValueError:
                 continue
-        stack = d if isinstance(d, list) else [d]
+        stack = list(reversed(d)) if isinstance(d, list) else [d]  # pop() from the end keeps document order
         while stack:
             it = stack.pop()
             if isinstance(it, dict):
                 out.append(it)
                 if isinstance(it.get("@graph"), list):
-                    stack.extend(it["@graph"])
+                    stack.extend(reversed(it["@graph"]))
             elif isinstance(it, list):
-                stack.extend(it)
+                stack.extend(reversed(it))
     return out
 
 
 def jsonld_jobposting(html: str) -> dict | None:
+    """The FIRST JobPosting in document order (a listing page can carry many; the first is the page's own)."""
     for it in jsonld_objects(html):
         t = it.get("@type")
         if t == "JobPosting" or (isinstance(t, list) and "JobPosting" in t):
@@ -85,8 +86,32 @@ def norm_company(s: str) -> str:
     return s
 
 
+def name_tokens(s: str) -> list[str]:
+    s = ascii_fold(s or "").lower()
+    s = re.sub(r"\(.*?\)", " ", s).replace("&", " and ")
+    s = _CO_SUFFIX.sub(" ", s)
+    return re.findall(r"[a-z0-9]+", s)
+
+
+def names_match(a: str, b: str) -> bool:
+    """Same employer: equal normalized names, or one a whole-token prefix of the other ('Marqeta' / 'Marqeta, Inc.',
+    'Spellbook' / 'Spellbook Legal'). 'Morgan Stanley' / 'Morgan Lewis' and 'Apollo Global Management' / 'Apollo GraphQL'
+    share only a first word, so they differ."""
+    ta, tb = name_tokens(a), name_tokens(b)
+    if not ta or not tb:
+        return False
+    if "".join(ta) == "".join(tb):
+        return True
+    n = min(len(ta), len(tb))
+    return ta[:n] == tb[:n]
+
+
+_LOC_TOK = r"(?:new york(?: city)?|nyc|ny|remote|us|usa|united states|hybrid|san francisco|london|chicago|washington|dc|d\.c\.)"
+# only a TRAILING location tag goes ("Counsel - New York, NY", "Counsel (Remote, US)"); a location word that starts a
+# longer qualifier ("Counsel, US Regulatory" vs "Counsel, US Commercial") is part of the title and stays
 _TITLE_NOISE = re.compile(
-    r"\s*[-–—|,(]\s*(new york|nyc|ny|remote|us|usa|united states|hybrid|san francisco|london|chicago|washington|dc)\b.*$",
+    r"\s*[-–—|,(/]\s*" + _LOC_TOK + r"(?:\s*[,/&\-–—(]\s*" + _LOC_TOK + r"|\s+" + _LOC_TOK + r")*"
+    r"(?:\s*,\s*[a-z]{2})?\s*\)?\s*$",
     re.I,
 )
 

@@ -21,6 +21,7 @@ class Posting(BaseModel):
     workplace: str = ""  # remote | hybrid | onsite | ""
     loc_bucket: str = "unknown"  # nyc | nyc_commutable | us_remote | us_other | non_us | unknown
     country: str | None = None  # ATS-reported country, kept so loc_bucket can be recomputed without location text
+    remote_flag: bool | None = None  # the ATS's own remote flag (never inferred from description prose)
 
     pay_min: float | None = None
     pay_max: float | None = None

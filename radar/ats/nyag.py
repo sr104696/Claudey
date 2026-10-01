@@ -12,6 +12,7 @@ from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
 
+from .. import config
 from ..http import client
 from ..models import Posting
 from .base import build_posting
@@ -95,8 +96,10 @@ def to_posting(entry: dict, source: str = "public:nyag", fetch_pdf: bool = True)
     )
     if extra:
         p.pay_extras = (p.pay_extras + f" + {extra.strip()}").strip(" +")
-        p.pay_display += f" + {re.search(r'[$][\d,]+', extra).group(0)} location pay"
-    if deadline and dt.date.fromisoformat(deadline) < dt.date.today():
+        amt = re.search(r"[$]\s?[\d,]+", extra)
+        if amt:
+            p.pay_display += f" + {amt.group(0).replace(' ', '')} location pay"
+    if deadline and deadline < config.today():
         p.status = "closed"
         p.status_evidence = f"Deadline {entry.get('deadline_text')} has passed"
     return p

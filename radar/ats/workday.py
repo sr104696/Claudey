@@ -16,7 +16,10 @@ def parse_url(url: str) -> dict | None:
     m = URL_RX.search(url)
     if not m or m.group("site") in ("wday",):
         return None
-    return m.groupdict()
+    d = m.groupdict()
+    if d.get("path"):  # the apply page and a trailing slash are not part of the job's own path
+        d["path"] = re.sub(r"/apply(?:/.*)?$", "", d["path"]).rstrip("/") or None
+    return d
 
 
 def spec_from_slug(slug: str) -> dict | None:
@@ -39,6 +42,7 @@ def list_jobs(spec: dict, search_text: str = "", max_pages: int = 200) -> tuple[
     out: list[dict] = []
     total = None
     offset = 0
+    done = False
     for _ in range(max_pages):
         r = client().post_json(f"{_base(spec)}/jobs", {"appliedFacets": {}, "limit": 20, "offset": offset, "searchText": search_text})
         if not r.ok:
@@ -49,9 +53,14 @@ def list_jobs(spec: dict, search_text: str = "", max_pages: int = 200) -> tuple[
         page = d.get("jobPostings") or []
         out.extend(page)
         offset += 20
-        if not page or offset >= (total or 0):
+        if not page:
+            done = len(out) >= (total or 0)  # an empty page before the stated total is a short pull
             break
-    return "ok", out
+        if offset >= (total or 0):
+            done = True
+            break
+    # leaving the loop early (max_pages, or an empty page short of the total) is a partial pull, not an empty board
+    return ("ok" if done else f"partial ({len(out)} of {total or '?'} jobs read)"), out
 
 
 def light_postings(spec: dict, company: str, jobs: list[dict], source: str) -> list[Posting]:

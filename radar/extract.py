@@ -18,7 +18,34 @@ _PAY_CTX = re.compile(
 )
 _HOURLY = re.compile(r"per hour|/\s?hr\b|/\s?hour|hourly|an hour", re.I)
 _MONTHLY = re.compile(r"per month|/\s?mo\b|/\s?month|monthly", re.I)
-_OTE = re.compile(r"\bOTE\b|on[- ]target earnings|on target earnings|including commission|base \+ commission|commission", re.I)
+# Agency names such as "Securities and Exchange Commission" are not pay: strip them before looking for commission.
+_ORG_COMMISSION = re.compile(
+    r"(?i:\b(?:Securities and Exchange|Equal Employment Opportunity|Federal Trade|Commodity Futures Trading|"
+    r"Federal Communications|Federal Energy Regulatory|Federal Election|Human Rights|Civil Rights|Public Service|"
+    r"Fair Employment(?: (?:and|&) Housing)?|Consumer Product Safety|Nuclear Regulatory|Law Revision|"
+    r"European|Competition|Securities|Ethics|Planning|Parole|Police|Gaming|Lottery|Utilities)\s+Commission\b)"
+    r"|\b[Tt]he Commission\b"
+)
+# OTE only on explicit pay language, never on a bare "commission"
+_OTE = re.compile(
+    r"(?-i:\bOTE\b)|on[- ]target (?:earnings|commissions?|incentive|bonus)|target total cash"
+    r"|including commissions?|base\s*(?:plus|\+|and|&)\s*(?:uncapped\s+)?commissions?"
+    r"|commissions?[\s-]+(?:plan|structure|eligible|based)|uncapped commissions?",
+    re.I,
+)
+
+
+def strip_orgs(text: str) -> str:
+    return _ORG_COMMISSION.sub(" ", text or "")
+
+
+def is_ote_text(text: str) -> bool:
+    """True when the text states OTE / commission-based pay, ignoring agency names like 'Securities and Exchange Commission'."""
+    return bool(_OTE.search(strip_orgs(text)))
+
+
+# "$500-$800 million portfolios", "$50 to $75 billion in AUM": amounts of assets, not pay
+_SCALE_AFTER = re.compile(r"(?:\s*(?:million|billion|trillion|mm|bn)|[mb])\b", re.I)
 _NYC_CTX = re.compile(r"new york|\bnyc\b|\bny\b", re.I)
 
 
@@ -52,7 +79,7 @@ def pay_extras(text: str) -> str:
     if re.search(r"(equity|stock)[^.\n]{0,40}(grant|award|compensation|package|options|plan|incentive)|"
                  r"(offers?|plus|\+|and|with)\s+equity\b|\brsus?\b|stock options|equity (in|ownership)", t):
         bits.append("equity")
-    if re.search(r"\bcommission", t):
+    if is_ote_text(text) or re.search(r"\bcommissions?\b(?!\s+of\b)", strip_orgs(text), re.I):
         bits.append("commission")
     return " + ".join(bits)
 
@@ -72,9 +99,15 @@ def pay_from_text(text: str) -> Pay:
             continue
         before = text[max(0, m.start() - 160) : m.start()]
         after = text[m.end() : m.end() + 60]
+        if _SCALE_AFTER.match(after):
+            continue
+        if "m" in ((m.group(2) or "") + (m.group(4) or "")).lower() and not _PAY_CTX.search(before[-60:]):
+            continue
         ctx = before + " " + after
         period = "year"
-        if _HOURLY.search(after) or _HOURLY.search(before[-40:]) or (hi < 1000 and not m.group(2) and not m.group(4)):
+        if _HOURLY.search(after) or _HOURLY.search(before[-40:]) or (
+            hi < 1000 and not m.group(2) and not m.group(4) and _PAY_CTX.search(before[-120:])
+        ):
             period = "hour"
         elif _MONTHLY.search(after):
             period = "month"
@@ -91,21 +124,23 @@ def pay_from_text(text: str) -> Pay:
     if cands:
         cands.sort(key=lambda c: (-c[0], c[1]))
         _, _, lo, hi, period, ctx = cands[0]
-        ptype = "hourly" if period == "hour" else ("OTE" if _OTE.search(ctx) else "base")
+        ptype = "hourly" if period == "hour" else ("OTE" if is_ote_text(ctx) else "base")
         return Pay(lo, hi, ptype, period, "USD", "regex:range", pay_extras(text))
     # single figure only when clearly labelled as salary
     for m in _SINGLE.finditer(text):
         v = _to_num(m.group(1), m.group(2))
         before = text[max(0, m.start() - 70) : m.start()]
         near = text[m.end() : m.end() + 20]
+        if _SCALE_AFTER.match(near):
+            continue
         # "$60 per hour" / "$9,500 per month": a small figure is pay when the period marker follows it
         if _HOURLY.search(near) and 10 <= v <= 2000:
             return Pay(v, v, "hourly", "hour", "USD", "regex:single", pay_extras(text))
         if _MONTHLY.search(near) and 1_000 <= v <= 100_000:
-            ptype = "OTE" if _OTE.search(before) else "base"
+            ptype = "OTE" if is_ote_text(before) else "base"
             return Pay(v, v, ptype, "month", "USD", "regex:single", pay_extras(text))
         if re.search(r"salary|base|compensation|pay", before, re.I) and 20_000 <= v <= 5_000_000:
-            ptype = "OTE" if _OTE.search(before) else "base"
+            ptype = "OTE" if is_ote_text(before) else "base"
             return Pay(v, v, ptype, "year", "USD", "regex:single", pay_extras(text))
     return Pay(extras=pay_extras(text))
 
@@ -275,7 +310,9 @@ NON_US = (
     "kuala lumpur|thailand|bangkok|south africa|cape town|johannesburg|nigeria|lagos|kenya|nairobi|egypt|"
     "emea|apac|latam|europe|european|\\beu\\b|cayman|bermuda|jersey, channel|guernsey|\\bldn\\b|\\bhkg\\b|\\bsgp\\b"
 )
-_NON_US = re.compile(NON_US, re.I)
+_NON_US = re.compile(r"\b(?:" + NON_US + r")\b", re.I)
+# foreign place names that are also US town names: with a US state they are the US town ("Dublin, CA", "Rome, NY")
+_US_TOWN_NAMES = {"dublin", "vienna", "athens", "rome"}
 _US_CITY = re.compile(r"\b(" + US_CITIES + r"|dc|d\.c\.)(?![a-z])", re.I)
 _STATE_ABBR = re.compile(r"(?:,|\s)\s*(" + "|".join(US_STATES) + r")\b(?:\s*\d{5})?(?:\s*,?\s*(?:US|USA|United States))?\s*$")
 _STATE_NAME = re.compile(r"\b(" + "|".join(sorted(US_STATES.values(), key=len, reverse=True)) + r")\b", re.I)
@@ -298,8 +335,12 @@ def classify_location(loc: str, *, remote_flag: bool | None = None, country: str
             return "non_us"
         return "unknown"
     is_remote = bool(_REMOTE.search(s)) or bool(remote_flag)
-    non_us = bool(_NON_US.search(s)) or bool(country and not re.match(r"^(US|USA|United States)", country, re.I))
     st = _STATE_ABBR.search(s)
+    # full state names come out first ("New Mexico" is not Mexico), then foreign tokens are matched on whole words
+    hits = [m.group(0).lower() for m in _NON_US.finditer(_STATE_NAME.sub(" ", s))]
+    if hits and (st or _STATE_NAME.search(s)) and all(h in _US_TOWN_NAMES for h in hits):
+        hits = []
+    non_us = bool(hits) or bool(country and not re.match(r"^(US|USA|United States)", country, re.I))
     # "Manhattan, KS" / "Brooklyn Park, MN": a borough name with an explicit non-NY state is not NYC
     borough_elsewhere = bool(st and st.group(1) != "NY" and not re.search(r"\bnew york\b|\bnyc\b", s, re.I))
     if _NYC.search(s) and not borough_elsewhere and not _NY_UPSTATE.search(s) and not re.search(r"new york state", s, re.I):
