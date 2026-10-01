@@ -1,0 +1,6 @@
+# Append-only data that both a refresh run and a person (or Claude) add to. The workflow's
+# `git pull --rebase -X theirs` otherwise keeps only the run's side of a conflict and silently drops the other
+# side's new lines (verified: a judgment appended while a run was in flight vanished). `union` keeps both.
+data/judgments.jsonl merge=union
+data/decisions.csv merge=union
+data/leads.jsonl merge=union

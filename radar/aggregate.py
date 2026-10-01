@@ -10,7 +10,7 @@ import csv
 import datetime as dt
 import re
 
-from . import config
+from . import config, seen as seen_mod
 from .phase1 import ap_date
 from .score import GOVERNMENT_NAME, LAW_FIRM_NAME, PAY_FLOOR, QUASI_PUBLIC_OK
 from .textutil import norm_company, norm_title
@@ -152,8 +152,17 @@ def sections() -> dict | None:
     poor = [r for r in latest if r["bucket"] == "poor"]
     gone = [e for k, e in seen.items() if k not in current and e["row"].get("bucket") == "fit" and not settled_out(e["row"])]
     gone.sort(key=lambda e: (e["last"], e["row"].get("company", "")), reverse=True)
+    # postings he applied to or dismissed (data/decisions.csv) leave the open lists; right_call also leaves the near misses
+    decisions = seen_mod.Decisions.load()
+    handled = [r for r in fits + near + outside if decisions.for_row(r) in seen_mod.HIDE_EVERYWHERE]
+    gone_ids = {identity(r) for r in handled}
+    fits = [r for r in fits if identity(r) not in gone_ids]
+    outside = [r for r in outside if identity(r) not in gone_ids]
+    near = [r for r in near if identity(r) not in gone_ids and decisions.for_row(r) not in seen_mod.HIDE_FROM_DIGEST]
+    handled = sorted({identity(r): r for r in handled}.values(), key=lambda r: (r.get("company", ""), r.get("title", "")))
+    gone = [e for e in gone if decisions.for_row(e["row"]) not in seen_mod.HIDE_EVERYWHERE]
     return dict(runs=runs, latest_date=latest_date, seen=seen, fits=fits, not_seats=not_seats, dropped=dropped,
-                near=near, outside=outside, poor=poor, gone=gone)
+                near=near, outside=outside, poor=poor, gone=gone, handled=handled)
 
 
 def build() -> tuple[str, dict]:
@@ -162,13 +171,14 @@ def build() -> tuple[str, dict]:
         return "", {}
     runs, latest_date, seen = S["runs"], S["latest_date"], S["seen"]
     fits, not_seats, dropped, near = S["fits"], S["not_seats"], S["dropped"], S["near"]
-    outside, poor, gone = S["outside"], S["poor"], S["gone"]
+    outside, poor, gone, handled = S["outside"], S["poor"], S["gone"], S["handled"]
 
     L = ["# All positions", "",
          f"Every posting the radar has seen across {len(runs)} runs ({ap_date(runs[0][0])} to {ap_date(latest_date)}), "
          f"deduplicated by ATS job ID, then URL. Only section 1 and 2 rows were confirmed open on {ap_date(latest_date)}; "
          "section 3 is history. ★ marks the seat families where your background clears the domain-years screen. "
-         "Government seats, law-firm seats and listed pay under $150K are excluded under your current rules.", "",
+         "Government seats, law-firm seats and listed pay under $150K are excluded under your current rules. "
+         f"{len(handled)} postings you applied to or dismissed are listed in section 6 only.", "",
          f"## 1. Open now: fits ({len(fits)})", "",
          "| Position | Company | Location | Listed pay | First seen |", "|---|---|---|---|---|"]
     L += [f"| {_pos(r)} | {_company(r)} | {_esc(_loc(r))} | {_esc(r.get('pay_display'))} | {ap_date(seen[identity(r)]['first'])} |" for r in fits]
@@ -193,8 +203,11 @@ def build() -> tuple[str, dict]:
     L += [f"- [{_esc(r['title'])}]({r['url']}), {_esc(r['company'])}, {_esc(r.get('pay_display'))}: {_esc(r.get('poor_reason'))[:160]}"
           for r in sorted(poor, key=lambda r: (r.get("company", ""), r.get("title", "")))]
     L += ["", "</details>", ""]
+    L += [f"## 6. Applied or dismissed ({len(handled)})", "", "Recorded in data/decisions.csv; never presented as new again.", "",
+          "| Position | Company | Listed pay |", "|---|---|---|"]
+    L += [f"| {_pos(r)} | {_company(r)} | {_esc(r.get('pay_display'))} |" for r in handled]
     stats = {"not_seats": len(not_seats), "dropped": len(dropped), "runs": len(runs), "unique": len(seen), "fits": len(fits), "near": len(near), "gone_fits": len(gone),
-             "outside": len(outside), "poor": len(poor), "rows_read": sum(len(r) for _, r in runs)}
+             "outside": len(outside), "poor": len(poor), "handled": len(handled), "rows_read": sum(len(r) for _, r in runs)}
     return "\n".join(L) + "\n", stats
 
 

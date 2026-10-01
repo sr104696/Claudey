@@ -111,7 +111,7 @@ jobs:
         run: |
           git add out/ data/snapshots/ seeds/companies.csv
           git add -A data/judgments/  # new batches for Claude to judge; results applied this run drop out
-          for f in data/leads.jsonl data/judgments.jsonl data/cc_boards.json data/discovered_boards.csv data/source_health.csv; do
+          for f in data/leads.jsonl data/judgments.jsonl data/seen.jsonl data/decisions.csv data/cc_boards.json data/discovered_boards.csv data/source_health.csv; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then

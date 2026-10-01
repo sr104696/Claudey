@@ -6,6 +6,7 @@
   import-leads FILE         Append leads from a JSONL file (web-search results gathered by Claude)
   import-inbox              Turn saved alumni-board alert emails (data/inbox/) into leads
   refresh                   Phases 1-5 end to end
+  decide ID DECISION        Record that you applied to / dismissed / ruled on a posting; no run presents it again
 """
 from __future__ import annotations
 
@@ -28,6 +29,12 @@ def main(argv: list[str] | None = None) -> int:
     il.add_argument("file")
     il.add_argument("--source", help="override the source field on every lead")
     sub.add_parser("aggregate", help="rebuild out/all_positions.md from every run's snapshot")
+    dc = sub.add_parser("decide", help="record a decision so no later run presents the posting again")
+    dc.add_argument("id", nargs="?", help="posting URL, ats:board:job_id, or 'Company|Title'")
+    dc.add_argument("decision", nargs="?", choices=("applied", "dismissed", "right_call", "fit"),
+                    help="applied/dismissed: never shown again; right_call: not asked about in the digest again; fit: the rule was wrong")
+    dc.add_argument("-n", "--note", default="")
+    dc.add_argument("--from-tracker", metavar="FILE", help="JSON list of application-tracker rows (url, company, title, stages); every row with an applied stage becomes 'applied'")
     rf = sub.add_parser("refresh", help="phases 1-5 end to end")
     rf.add_argument("--skip-discovery", action="store_true", help="reuse leads already gathered today")
     rf.add_argument("--channels", nargs="*", help="discovery channels to run (default: all)")
@@ -72,6 +79,23 @@ def main(argv: list[str] | None = None) -> int:
         for c in closed:
             print(f"{c.status:13} {c.label[:80]}")
 
+    elif args.cmd == "decide":
+        from . import seen
+
+        if args.from_tracker:
+            rows = json.load(open(args.from_tracker, encoding="utf-8"))
+            n = 0
+            for r in rows if isinstance(rows, list) else rows.get("docs", []):
+                if (r.get("stages") or {}).get("applied") and (r.get("url") or r.get("company")):
+                    seen.record_decision(r.get("url") or f"{r['company']}|{r.get('title', '')}", "applied",
+                                         note="from tracker", company=r.get("company", ""), title=r.get("title", ""))
+                    n += 1
+            print(f"recorded {n} applied postings from {args.from_tracker}")
+        elif args.id and args.decision:
+            seen.record_decision(args.id, args.decision, args.note)
+            print(f"recorded {args.decision}: {args.id}")
+        else:
+            ap.error("decide needs ID and DECISION, or --from-tracker FILE")
     elif args.cmd == "aggregate":
         from . import aggregate
 

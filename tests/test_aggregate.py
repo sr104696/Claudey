@@ -33,3 +33,22 @@ def test_prune_keeps_latest_runs(tmp_path, monkeypatch):
         (tmp_path / f"diff_{d}.md").write_text("x")
     assert aggregate.prune_out(4) == ["diff_2026-09-01.md"]
     assert len(list(tmp_path.glob("diff_*.md"))) == 4
+
+
+def test_applied_and_dismissed_leave_the_open_lists(tmp_path, monkeypatch):
+    from radar import seen
+
+    monkeypatch.setattr(aggregate, "SNAP_DIR", tmp_path)
+    base = dict(bucket="fit", company="Acme", ats="greenhouse", board="acme", pay_display="$200K base", pay_min="200000",
+                pay_max="200000", pay_type="base", pay_period="year")
+    a = dict(base, title="Regulatory Counsel", url="https://x/1", job_id="1")
+    b = dict(base, title="Product Counsel", url="https://x/2", job_id="2")
+    c = dict(base, title="Privacy Counsel", url="https://x/3", job_id="3")
+    _snap(tmp_path / "2026-09-28.csv", [a, b, c])
+    seen.record_decision("https://x/1", "applied")
+    seen.record_decision("greenhouse:acme:2", "dismissed")
+    md, st = aggregate.build()
+    assert st["fits"] == 1 and st["handled"] == 2
+    open_part, handled_part = md.split("## 6. Applied or dismissed")
+    assert "Privacy Counsel" in open_part and "Regulatory Counsel" not in open_part and "Product Counsel" not in open_part
+    assert "Regulatory Counsel" in handled_part and "Product Counsel" in handled_part
