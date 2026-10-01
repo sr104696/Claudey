@@ -1,16 +1,21 @@
 # Seat recurrence (Wayback Machine)
 
-Built 2026-09-29 from Wayback CDX captures since 2023-09. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
+Built 2026-10-01 from Wayback CDX captures since 2023-10. Capture dates are upper bounds on when a posting went up, and sparse captures can hide openings entirely, so treat counts as minimums.
 
 | Employer | Seat family | Openings found | Per year | Median gap | Watch |
 |---|---|---:|---:|---|---|
 | Point72 | academy / analyst program | 14 | 4.7 | 3 months | check weekly |
+| Burford | underwriting | 5 | 1.7 | 11 months | check monthly |
 | Debtwire (ION) | legal analyst / bankruptcy / LME / covenant | 4 | 1.3 | 6 months | check every 2 weeks |
-| Octus | legal analyst / bankruptcy / LME / covenant | 3 | 1.0 | 5 months | check every 2 weeks |
 | Point72 | research | 3 | 1.0 | 21 months | check monthly |
+| Octus | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
 | Octus (Reorg) | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
+| 9fin | legal analyst / bankruptcy / LME / covenant | 1 | 0.3 | n/a (one opening) | check monthly |
+| Harvey | legal engineer | 1 | 0.3 | n/a (one opening) | check monthly |
 
-Failures: jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused); careers.burfordcapital.com/job/*: error: gave up after 4 attempts (ConnectError: [Errno 111] Connection refused)
+Truncated, so counts are minimums: job-boards.greenhouse.io/octus/jobs/*: per-target page budget of 41 reached, 116 captures not read; jobs.ashbyhq.com/9fin/*: per-target page budget of 41 reached, 104 captures not read; jobs.lever.co/ion/*: per-target page budget of 41 reached, 261 captures not read; jobs.ashbyhq.com/harvey/*: per-target page budget of 41 reached, 472 captures not read; www.harvey.ai/company/careers/*: per-target page budget of 41 reached, 65 captures not read
+
+Failures: jobs.ashbyhq.com/9fin/*: 1 of 41 capture fetches failed (first: HTTP 404)
 
 ### Point72: academy / analyst program
 
@@ -31,6 +36,16 @@ Failures: jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError
 | [programming coding academy instructor](https://web.archive.org/web/20260812/https://careers.point72.com/CSJobDetail?jobName=programming-coding-academy-instructor&jobCode=IVS-0004863&retURL=%2FCSCareerSearch) | 2026-08-12 | 2026-08-12 |
 | [2026 point72 academy national case competition us](https://web.archive.org/web/20260819/https://careers.point72.com/CSJobDetail?jobCode=CPC-0015213&location=New+York&locale=English&retURL=%2FCSCareerSearch&jobName=2026-point72-academy-national-case-competition-us) | 2026-08-19 | 2026-08-19 |
 
+### Burford: underwriting
+
+| Title | First captured | Last captured |
+|---|---|---|
+| [New York Vice President, US Commercial Underwriter NY 10017](https://web.archive.org/web/20241113/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-US-Commercial-Underwriter-NY-10017/1213941100/) | 2024-11-13 | 2024-11-13 |
+| [Chicago Vice President, Patent Underwriting IL 60654](https://web.archive.org/web/20260419/https://careers.burfordcapital.com/job/Chicago-Vice-President%2C-Patent-Underwriting-IL-60654/1331845700/) | 2026-04-19 | 2026-09-27 |
+| [New York Vice President, Commercial Underwriting NY 10017](https://web.archive.org/web/20260419/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-Commercial-Underwriting-NY-10017/1331385600/) | 2026-04-19 | 2026-04-19 |
+| [New York Underwriting Paralegal NY 10017](https://web.archive.org/web/20260923/https://careers.burfordcapital.com/job/New-York-Underwriting-Paralegal-NY-10017/1420695800/) | 2026-09-23 | 2026-09-27 |
+| [New York Vice President, U S Commercial Underwriting NY 10017](https://web.archive.org/web/20260923/https://careers.burfordcapital.com/job/New-York-Vice-President%2C-U_S_-Commercial-Underwriting-NY-10017/1331385600/) | 2026-09-23 | 2026-09-27 |
+
 ### Debtwire (ION): legal analyst / bankruptcy / LME / covenant
 
 | Title | First captured | Last captured |
@@ -40,14 +55,6 @@ Failures: jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError
 | [debtwire restructuring data analyst](https://web.archive.org/web/20250711/https://iongroup.com/jobs/debtwire-restructuring-data-analyst-c84dda36-ac79-4ad7-9f79-81f33065d6c2/) | 2025-07-11 | 2025-07-11 |
 | [north american legal analyst debtwire](https://web.archive.org/web/20250711/https://iongroup.com/jobs/north-american-legal-analyst-debtwire-a33cd7a0-ffe6-49bb-974c-74ce79638316/) | 2025-07-11 | 2025-07-11 |
 
-### Octus: legal analyst / bankruptcy / LME / covenant
-
-| Title | First captured | Last captured |
-|---|---|---|
-| [Senior Covenants Lawyer](https://web.archive.org/web/20250729/https://job-boards.greenhouse.io/octus/jobs/4566727007) | 2025-07-29 | 2025-07-29 |
-| [Covenants Lawyer](https://web.archive.org/web/20251014/https://job-boards.greenhouse.io/octus/jobs/4800053007) | 2025-10-14 | 2025-12-14 |
-| [Operations Associate (Covenants)](https://web.archive.org/web/20260520/https://job-boards.greenhouse.io/octus/jobs/5077161007) | 2026-05-20 | 2026-05-20 |
-
 ### Point72: research
 
 | Title | First captured | Last captured |
@@ -56,8 +63,26 @@ Failures: jobs.ashbyhq.com/9fin/*: error: gave up after 4 attempts (ConnectError
 | [fundamental researcher market intelligence canvas](https://web.archive.org/web/20241221/https://careers.point72.com/CSJobDetail?jobName=fundamental-researcher-market-intelligence-canvas&jobCode=IVS-0012829&location=Singapore&locale=English&retURL=/CSCareerSearch) | 2024-12-21 | 2024-12-21 |
 | [fundamental research fellowship canvas](https://web.archive.org/web/20260921/https://careers.point72.com/CSJobDetail?retURL=%2FCSCareerSearch&jobName=fundamental-research-fellowship-canvas&jobCode=PMI-0015128&location=New+York&locale=English) | 2026-09-21 | 2026-09-21 |
 
+### Octus: legal analyst / bankruptcy / LME / covenant
+
+| Title | First captured | Last captured |
+|---|---|---|
+| [Senior Covenants Lawyer](https://web.archive.org/web/20250729/https://job-boards.greenhouse.io/octus/jobs/4566727007) | 2025-07-29 | 2025-07-29 |
+
 ### Octus (Reorg): legal analyst / bankruptcy / LME / covenant
 
 | Title | First captured | Last captured |
 |---|---|---|
 | [Legal Analyst](https://web.archive.org/web/20231011/https://boards.greenhouse.io/reorg/jobs/4097177007) | 2023-10-11 | 2024-07-22 |
+
+### 9fin: legal analyst / bankruptcy / LME / covenant
+
+| Title | First captured | Last captured |
+|---|---|---|
+| [Senior Covenant Lawyer - Distressed](https://web.archive.org/web/20250709/https://jobs.ashbyhq.com/9fin/3c947b2d-1fc7-4de1-a877-ada222887ab3) | 2025-07-09 | 2025-07-09 |
+
+### Harvey: legal engineer
+
+| Title | First captured | Last captured |
+|---|---|---|
+| [Legal Engineer Manager, Paris](https://web.archive.org/web/20260923/https://www.harvey.ai/company/careers/3a8e3731-1a06-4d15-84c0-cfc564dd633c) | 2026-09-23 | 2026-09-23 |
