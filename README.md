@@ -50,6 +50,47 @@ from the repo's Actions tab ("refresh" → Run workflow). A full sweep takes abo
 unless you add one. Those runs can't make the Claude judgment calls, so run `/refresh-jobs` afterwards to judge new rows.
 [docs/LOVABLE.md](docs/LOVABLE.md) has the prompt and build steps for a Lovable dashboard over these outputs.
 
+## GitHub integration
+
+The radar uses **GitHub CLI (`gh`)** to read committed reports, check the latest refresh run,
+and explicitly start a sweep. Install `gh` using [GitHub's installation instructions](https://cli.github.com/)
+and install the existing Python dependencies with `pip install -r requirements.txt`.
+No additional Python package is needed.
+
+Register a GitHub CLI shell alias once (run from this repository with Python 3.12+
+and its dependencies available):
+
+```bash
+gh alias set radar '!python3 -m radar github "$@"'
+gh radar status
+gh radar report                     # prints out/all_positions.md
+gh radar report --path out/diff_2026-10-01.md
+gh radar trigger --quick --confirm  # starts a sweep; skips Common Crawl
+```
+
+Run these commands from the repository with your Python environment activated. If your Python
+interpreter is named differently, substitute it in the alias. In Freebuff, use **`gh radar`**,
+not a direct `python -m radar github` invocation: managed credentials are injected at the
+outer `gh` command boundary and inherited by the alias's child process.
+
+All commands accept `--repo OWNER/REPO` and `--ref BRANCH` (defaults: `sr104696/Claudey`, `main`).
+Reports are printed to stdout without overwriting local outputs. Status returns JSON; `run: null`
+means no manually dispatched refresh exists on that branch. A successful trigger means GitHub accepted
+it, not that the sweep has finished; use `status` or the returned Actions URL to follow progress.
+Triggering requires `--confirm`, is never retried automatically, and runs the existing workflow,
+which commits its generated results. No sweep is started by report or status commands.
+
+**Keys tab in Freebuff: no keys to add.** Freebuff injects a short-lived, repository-scoped GitHub
+App credential into `gh` commands. The service's generic `GITHUB_TOKEN` setup is not needed here;
+this integration does not read or store a token. Required repository access is **Contents: read**
+for reports and **Actions: read/write** for status and dispatch. If managed authentication fails,
+reconnect the repository or update the Freebuff GitHub App permissions. This does not change the
+refresh workflow's existing `contents: write` permission for committing its results.
+
+The managed credential is workspace-only: deployments do not inherit it. Outside Freebuff,
+configure GitHub CLI through your organization's approved authentication process before running
+these commands. Never embed credentials in code or send them to a browser.
+
 ## Politeness rules baked into the client (`radar/http.py`)
 
 - 1 request per second per host (or the host's `Crawl-delay`), enforced across processes.
