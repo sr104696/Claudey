@@ -42,7 +42,33 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("score", help="phases 4-5 only, reusing today's seed check, board pulls and leads")
     sub.add_parser("import-inbox", help="turn saved alumni-board alert emails in data/inbox/ into leads")
     sub.add_parser("apply-judgments", help="merge data/judgments/results/*.json into data/judgments.jsonl")
+    gh = sub.add_parser("github", help="read GitHub reports, check sweeps, or explicitly start a sweep")
+    gh.add_argument("action", choices=("status", "report", "trigger"))
+    gh.add_argument("--repo", default="sr104696/Claudey", help="OWNER/REPO")
+    gh.add_argument("--ref", default="main", help="branch (default: main)")
+    gh.add_argument("--path", default="out/all_positions.md", help="report path for the report action")
+    gh.add_argument("--quick", action="store_true", help="trigger: skip Common Crawl")
+    gh.add_argument("--confirm", action="store_true", help="required to start a remote sweep")
     args = ap.parse_args(argv)
+
+    if args.cmd == "github":
+        from . import github
+
+        if args.action == "trigger" and not args.confirm:
+            ap.error("github trigger starts a remote sweep; pass --confirm to proceed")
+        if args.quick and args.action != "trigger":
+            ap.error("--quick is only supported by github trigger")
+        try:
+            if args.action == "report":
+                print(github.report(args.path, args.repo, args.ref), end="")
+            else:
+                result = (github.trigger(args.repo, args.ref, quick=args.quick)
+                          if args.action == "trigger" else github.status(args.repo, args.ref))
+                print(json.dumps(result, indent=2, ensure_ascii=False))
+        except github.GitHubError as exc:
+            print(f"GitHub: {exc}", file=sys.stderr)
+            return 1
+        return 0
 
     if args.cmd in ("refresh", "score"):
         from . import pipeline
